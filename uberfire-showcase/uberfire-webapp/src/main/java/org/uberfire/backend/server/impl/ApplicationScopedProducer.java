@@ -23,7 +23,7 @@ public class ApplicationScopedProducer {
 
     @PostConstruct
     public void setup() {
-        ioService  = new IOServiceNio2WrapperImpl("1", watchService);
+        ioService = new IOServiceNio2WrapperImpl( "1", watchService );
     }
 
     @Produces
@@ -31,5 +31,4 @@ public class ApplicationScopedProducer {
     public IOService ioService() {
         return ioService;
     }
-
 }

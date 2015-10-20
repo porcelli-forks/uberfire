@@ -25,6 +25,7 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.RequiresResize;
@@ -36,6 +37,8 @@ import org.uberfire.backend.vfs.Path;
 import org.uberfire.backend.vfs.VFSService;
 import org.uberfire.client.mvp.PlaceManager;
 import org.uberfire.mvp.impl.DefaultPlaceRequest;
+import org.uberfire.shared.CloudEvent;
+import org.uberfire.shared.CloudService;
 import org.uberfire.workbench.events.NotificationEvent;
 
 import static org.uberfire.workbench.events.NotificationEvent.NotificationType.*;
@@ -70,8 +73,26 @@ public class MiscFeaturesView extends Composite
     @UiField
     Button editor;
 
+    @UiField
+    Button cloudEvent;
+
+    @UiField
+    Button cloudEvent2;
+
+    @UiField
+    Button cloudExec;
+
+    @UiField
+    Button cloudExec2;
+
     @Inject
     private Caller<VFSService> vfsServices;
+
+    @Inject
+    private Caller<CloudService> cloudService;
+
+    @Inject
+    private Caller<CloudEvent> cloudEventCaller;
 
     @Override
     public void init( final MiscFeaturesPresenter presenter ) {
@@ -88,50 +109,50 @@ public class MiscFeaturesView extends Composite
         int height = getParent().getOffsetHeight();
         int width = getParent().getOffsetWidth();
         panel.setPixelSize( width,
-                height );
+                            height );
     }
 
-    @UiHandler( "notificationDefaultButton" )
+    @UiHandler("notificationDefaultButton")
     public void onClickNotificationButton( final ClickEvent event ) {
         notification.fire( new NotificationEvent( "Something happened" ) );
     }
 
-    @UiHandler( "notificationErrorButton" )
+    @UiHandler("notificationErrorButton")
     public void onClickNotificationErrButton( final ClickEvent event ) {
         notification.fire( new NotificationEvent( "Something happened", ERROR ) );
     }
 
-    @UiHandler( "notificationSuccessButton" )
+    @UiHandler("notificationSuccessButton")
     public void onClickNotificationSuccessButton( final ClickEvent event ) {
         notification.fire( new NotificationEvent( "Something happened", SUCCESS ) );
     }
 
-    @UiHandler( "notificationInfoButton" )
+    @UiHandler("notificationInfoButton")
     public void onClickNotificationInfoButton( final ClickEvent event ) {
         notification.fire( new NotificationEvent( "Something happened", INFO ) );
     }
 
-    @UiHandler( "notificationWarnButton" )
+    @UiHandler("notificationWarnButton")
     public void onClickNotificationWarnButton( final ClickEvent event ) {
         notification.fire( new NotificationEvent( "Something happened", WARNING ) );
     }
 
-    @UiHandler( "launchUnknownPlace" )
+    @UiHandler("launchUnknownPlace")
     public void onClickLaunchUnknownPlace( final ClickEvent event ) {
         placeManager.goTo( new DefaultPlaceRequest( "MyTestPopUp" ) );
     }
 
-    @UiHandler( "setNewTitleButton" )
+    @UiHandler("setNewTitleButton")
     public void onSetNewTitleButtonClick( final ClickEvent event ) {
         presenter.setNewTitle( "NewCoolTitle" );
     }
 
-    @UiHandler( "activityNotFound" )
+    @UiHandler("activityNotFound")
     public void onClickActivityNotFound( final ClickEvent event ) {
         placeManager.goTo( "some.place.does.not.exists.please!" );
     }
 
-    @UiHandler( "editor" )
+    @UiHandler("editor")
     void handleEditor( ClickEvent e ) {
         vfsServices.call( new RemoteCallback<Path>() {
             @Override
@@ -140,6 +161,36 @@ public class MiscFeaturesView extends Composite
             }
         } ).get( "default://uf-playground/todo.md" );
 
+    }
+
+    @UiHandler("cloudEvent")
+    void cloudEventProcess( ClickEvent e ) {
+        cloudEventCaller.call().sendEvent( 2000 );
+    }
+
+    @UiHandler("cloudEvent2")
+    void cloudEvent2Process( ClickEvent e ) {
+        cloudEventCaller.call().sendQualifiedEvent( 2000 );
+    }
+
+    @UiHandler("cloudExec")
+    void cloudExecProcess( ClickEvent e ) {
+        cloudService.call( new RemoteCallback<Void>() {
+            @Override
+            public void callback( final Void aVoid ) {
+                Window.alert( "Process finished" );
+            }
+        } ).process( 20000 );
+    }
+
+    @UiHandler("cloudExec2")
+    void cloudExec2Process( ClickEvent e ) {
+        cloudService.call( new RemoteCallback<String>() {
+            @Override
+            public void callback( final String value ) {
+                Window.alert( "Process finished -> " + value );
+            }
+        } ).process( 20000, "param1" );
     }
 
 }

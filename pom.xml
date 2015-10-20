@@ -629,6 +629,7 @@
     <module>uberfire-security</module>
     <module>uberfire-nio2-backport</module>
     <module>uberfire-io</module>
+    <module>uberfire-cloud</module>
     <module>uberfire-server</module>
     <module>uberfire-backend</module>
     <module>uberfire-js</module>

@@ -4,9 +4,11 @@ import java.net.URI;
 import java.util.HashMap;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.uberfire.cloud.LocalUniqueId;
 import org.uberfire.commons.services.cdi.Startup;
 import org.uberfire.io.IOService;
 import org.uberfire.java.nio.file.FileSystemAlreadyExistsException;
@@ -22,6 +24,9 @@ public class AppSetup {
     @Named("ioStrategy")
     private IOService ioService;
 
+    @Inject
+    private LocalUniqueId uniqueId;
+
     @PostConstruct
     public void assertPlayground() {
         try {
@@ -30,7 +35,22 @@ public class AppSetup {
                 put( "username", PLAYGROUND_UID );
             }} );
         } catch ( final FileSystemAlreadyExistsException ignore ) {
+        }
+    }
 
+    public void onCloudEvent1( @Observes final CloudSampleEvent event ) {
+        if ( !event.getSource().equals( uniqueId.getId() ) ) {
+            System.err.println( "Remote Event!" );
+        } else {
+            System.err.println( "Local Event!" );
+        }
+    }
+
+    public void onCloudEvent2( @Observes @Named("myquali!") final CloudSampleEvent event ) {
+        if ( !event.getSource().equals( uniqueId.getId() ) ) {
+            System.err.println( "Remote Quali Event!" );
+        } else {
+            System.err.println( "Local Quali Event!" );
         }
     }
 
