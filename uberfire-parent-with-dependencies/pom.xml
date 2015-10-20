@@ -100,6 +100,14 @@
 
     <version.org.patternfly>2.1.0</version.org.patternfly>
 
+    <version.com.esotericsoftware.kryo>3.0.3</version.com.esotericsoftware.kryo>
+
+    <version.org.apache.activemq>5.12.0</version.org.apache.activemq>
+    <version.org.apache.activemq.artemis>1.1.0</version.org.apache.activemq.artemis>
+    <version.org.apache.qpid.jms.client>0.5.0</version.org.apache.qpid.jms.client>
+    <version.cglib.cglib.nodep>3.1</version.cglib.cglib.nodep>
+    <version.org.apache.deltaspike.core>1.2.1</version.org.apache.deltaspike.core>
+
     <osgi.snapshot.qualifier>${maven.build.timestamp}</osgi.snapshot.qualifier>
     <version.com.google.gwt.gwtmockito>1.1.4</version.com.google.gwt.gwtmockito>
   </properties>
@@ -795,6 +803,50 @@
         <groupId>org.picketlink</groupId>
         <artifactId>picketlink-tomcat7-single</artifactId>
         <version>${version.org.picketlink}</version>
+      </dependency>
+
+      <dependency><!-- CDI Cloud -->
+        <groupId>com.esotericsoftware</groupId>
+        <artifactId>kryo</artifactId>
+        <version>${version.com.esotericsoftware.kryo}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.activemq</groupId>
+        <artifactId>activemq-all</artifactId>
+        <version>${version.org.apache.activemq}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.activemq</groupId>
+        <artifactId>artemis-core-client</artifactId>
+        <version>${version.org.apache.activemq.artemis}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.qpid</groupId>
+        <artifactId>qpid-jms-client</artifactId>
+        <version>${version.org.apache.qpid.jms.client}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>cglib</groupId>
+        <artifactId>cglib-nodep</artifactId>
+        <version>${version.cglib.cglib.nodep}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.deltaspike.core</groupId>
+        <artifactId>deltaspike-core-api</artifactId>
+        <version>${version.org.apache.deltaspike.core}</version>
+        <scope>compile</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.deltaspike.core</groupId>
+        <artifactId>deltaspike-core-impl</artifactId>
+        <version>${version.org.apache.deltaspike.core}</version>
+        <scope>runtime</scope>
       </dependency>
 
       <dependency><!-- JPA 2 implementation agnostic jar -->
