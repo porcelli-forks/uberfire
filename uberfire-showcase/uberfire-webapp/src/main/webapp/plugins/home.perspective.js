@@ -21,7 +21,7 @@ $registerPerspective({
     view: {
         parts: [
             {
-                place: "welcome",
+                place: "MiscellaneousFeatures",
                 parameters: {}
             }
         ],

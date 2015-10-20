@@ -39,6 +39,28 @@
   </properties>
 
   <dependencies>
+
+    <dependency>
+      <groupId>org.uberfire</groupId>
+      <artifactId>uberfire-cloud-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.uberfire</groupId>
+      <artifactId>uberfire-cloud-cdi</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.uberfire</groupId>
+      <artifactId>uberfire-cloud-activemq</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.deltaspike.core</groupId>
+      <artifactId>deltaspike-core-impl</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.uberfire</groupId>
       <artifactId>uberfire-all</artifactId>
@@ -100,6 +122,18 @@
       <groupId>org.jboss.errai</groupId>
       <artifactId>errai-ui</artifactId>
       <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.errai</groupId>
+      <artifactId>errai-bus</artifactId>
+      <exclusions>
+        <!-- activemq has netty-all -->
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-codec-http</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
