@@ -43,7 +43,7 @@ public class LocalUniqueId {
 
     private void loadConfig( final ConfigProperties config ) {
         final ConfigProperties.ConfigProperty serviceName = config.get( "org.uberfire.local.service.names", null );
-        if ( serviceName.getValue() == null || serviceName.getValue().trim().isEmpty() ) {
+        if ( serviceName.getValue() == null || serviceName.getValue().replaceAll( "\"", "" ).trim().isEmpty() ) {
             currentMode = ExecutionMode.LOCAL;
             localServiceNames = Collections.unmodifiableSet( new HashSet<String>() {{
                 add( "local" );

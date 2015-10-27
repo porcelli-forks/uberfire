@@ -5,11 +5,14 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.BeforeShutdown;
+import javax.inject.Inject;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.uberfire.cloud.ExecutionMode;
+import org.uberfire.cloud.LocalUniqueId;
 import org.uberfire.commons.config.ConfigProperties;
 import org.uberfire.commons.services.cdi.Startup;
 import org.uberfire.commons.services.cdi.StartupType;
@@ -22,6 +25,9 @@ public class ActiveMQProducer {
 
     private final static String DEFAULT_EVENTS_NAME = "UFCloudEventsTopic";
     private final static String DEFAULT_RPC_NAME = "UFCloudRPCTopic";
+
+    @Inject
+    private LocalUniqueId localUniqueId;
 
     private Connection connection;
     private String eventsTopicName;
@@ -37,11 +43,14 @@ public class ActiveMQProducer {
 
     public void setup( final ConfigProperties config ) {
         checkNotNull( "config", config );
-
         eventsTopicName = config.get( "org.uberfire.activemq.events", DEFAULT_EVENTS_NAME ).getValue();
         rpcTopicName = config.get( "org.uberfire.activemq.rpc", DEFAULT_RPC_NAME ).getValue();
 
-        final String brokerURL = config.get( "org.uberfire.cloud.activemq.url", "vm://localhost?broker.persistent=false" ).getValue();
+        if ( localUniqueId.getCurrentMode().equals( ExecutionMode.LOCAL ) ) {
+            return;
+        }
+
+        final String brokerURL = config.get( "org.uberfire.cloud.activemq.url", "vm://localhost?broker.persistent=false" ).getValue().replaceAll( "\"", "" );
         final String username = config.get( "org.uberfire.cloud.activemq.username", null ).getValue();
         final String password = config.get( "org.uberfire.cloud.activemq.password", null ).getValue();
 
@@ -55,7 +64,7 @@ public class ActiveMQProducer {
         try {
             this.connection = connectionFactory.createConnection();
             connection.start();
-            System.err.println( "done!" );
+            System.err.println( "ActiveMQ Connected!" );
         } catch ( JMSException e ) {
             throw new RuntimeException( e );
         }
@@ -63,10 +72,12 @@ public class ActiveMQProducer {
     }
 
     public void onShutdown( @Observes BeforeShutdown beforeShutdown ) {
-        try {
-            connection.close();
-        } catch ( JMSException e ) {
-            e.printStackTrace();
+        if ( connection != null ) {
+            try {
+                connection.close();
+            } catch ( JMSException e ) {
+                e.printStackTrace();
+            }
         }
     }
 

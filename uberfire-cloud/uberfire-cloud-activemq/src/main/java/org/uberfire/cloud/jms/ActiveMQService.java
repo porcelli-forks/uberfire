@@ -69,6 +69,9 @@ public class ActiveMQService implements Publisher {
                             final RoutingService router,
                             final LocalExecution localExecution ) {
         this.uniqueId = uniqueId;
+        if ( uniqueId.getCurrentMode().equals( ExecutionMode.LOCAL ) ) {
+            return;
+        }
         this.connection = connection;
         try {
             eventsSession = connection.createSession( false, Session.AUTO_ACKNOWLEDGE );
@@ -95,11 +98,11 @@ public class ActiveMQService implements Publisher {
 
                 final MessageConsumer routerConsumer = rpcReplySession.createConsumer( rpcTopic );
                 routerConsumer.setMessageListener( new RPCServiceConsumer( rpcReplySession,
-                                                                             marshallingService,
-                                                                             localExecution,
-                                                                             uniqueId,
-                                                                             rpcReplySession.createProducer( null ),
-                                                                             router ) );
+                                                                           marshallingService,
+                                                                           localExecution,
+                                                                           uniqueId,
+                                                                           rpcReplySession.createProducer( null ),
+                                                                           router ) );
             }
         } catch ( JMSException e ) {
             throw new RuntimeException( "Error", e );
