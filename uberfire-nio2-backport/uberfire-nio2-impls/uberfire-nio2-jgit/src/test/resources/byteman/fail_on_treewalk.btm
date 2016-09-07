@@ -1,0 +1,21 @@
+#
+#   This Byteman creates an exception on JGitUtil, to simulate random
+#   issue found on Windows. (see RHBPMS-4105)
+#
+
+RULE create counter
+CLASS org.uberfire.java.nio.fs.jgit.util.JGitUtil
+METHOD resolvePath(org.eclipse.jgit.api.Git,java.lang.String,java.lang.String)
+AT INVOKE org.eclipse.jgit.treewalk.TreeWalk.reset(org.eclipse.jgit.lib.AnyObjectId)
+IF TRUE
+DO incrementCounter("TreeWalkerCounter");
+ENDRULE
+
+RULE catch counter
+CLASS org.uberfire.java.nio.fs.jgit.util.JGitUtil
+METHOD resolvePath(org.eclipse.jgit.api.Git,java.lang.String,java.lang.String)
+AFTER INVOKE org.eclipse.jgit.treewalk.TreeWalk.reset(org.eclipse.jgit.lib.AnyObjectId)
+IF readCounter("TreeWalkerCounter") == 2
+DO incrementCounter("TreeWalkerCounter");
+   throw RuntimeException("almost random failure")
+ENDRULE
