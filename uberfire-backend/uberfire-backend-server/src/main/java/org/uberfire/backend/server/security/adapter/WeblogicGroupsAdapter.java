@@ -53,7 +53,7 @@ public class WeblogicGroupsAdapter implements GroupsAdapter {
 
         try {
             Subject wlsSubject = (Subject) subject;
-            // if no subject given try to fetch it with WLS specific api
+            // if no subject given try to _fetch it with WLS specific api
             if (wlsSubject == null) {
                 Method method = webLogicSecurity.getMethod("getCurrentSubject", new Class[]{});
                 wlsSubject = (Subject) method.invoke(null, new Object[]{});

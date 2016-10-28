@@ -33,8 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.slf4j.Logger;
@@ -58,12 +56,13 @@ import org.uberfire.java.nio.file.WatchService;
 import org.uberfire.java.nio.file.Watchable;
 import org.uberfire.java.nio.file.attribute.UserPrincipalLookupService;
 import org.uberfire.java.nio.file.spi.FileSystemProvider;
+import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
 
 import static java.util.Arrays.*;
 import static java.util.Collections.*;
 import static org.eclipse.jgit.lib.Repository.*;
 import static org.uberfire.commons.validation.PortablePreconditions.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitFileSystem implements FileSystem,
                                        FileSystemId,
@@ -74,8 +73,7 @@ public class JGitFileSystem implements FileSystem,
     private static final Set<String> SUPPORTED_ATTR_VIEWS = unmodifiableSet( new HashSet<String>( asList( "basic", "version" ) ) );
 
     private final JGitFileSystemProvider provider;
-    private final Git gitRepo;
-    private final ListBranchCommand.ListMode listMode;
+    private final Git git;
     private final String toStringContent;
     private boolean isClosed = false;
     private final FileStore fileStore;
@@ -96,21 +94,11 @@ public class JGitFileSystem implements FileSystem,
                     final Git git,
                     final String name,
                     final CredentialsProvider credential ) {
-        this( provider, fullHostNames, git, name, null, credential );
-    }
-
-    JGitFileSystem( final JGitFileSystemProvider provider,
-                    final Map<String, String> fullHostNames,
-                    final Git git,
-                    final String name,
-                    final ListBranchCommand.ListMode listMode,
-                    final CredentialsProvider credential ) {
         this.provider = checkNotNull( "provider", provider );
-        this.gitRepo = checkNotNull( "git", git );
+        this.git = checkNotNull( "git", git );
         this.name = checkNotEmpty( "name", name );
         this.credential = checkNotNull( "credential", credential );
-        this.listMode = listMode;
-        this.fileStore = new JGitFileStore( gitRepo.getRepository() );
+        this.fileStore = new JGitFileStore( this.git.getRepository() );
         if ( fullHostNames != null && !fullHostNames.isEmpty() ) {
             final StringBuilder sb = new StringBuilder();
             final Iterator<Map.Entry<String, String>> iterator = fullHostNames.entrySet().iterator();
@@ -136,8 +124,8 @@ public class JGitFileSystem implements FileSystem,
         return name;
     }
 
-    public Git gitRepo() {
-        return gitRepo;
+    public Git getGit() {
+        return git;
     }
 
     public CredentialsProvider getCredential() {
@@ -167,51 +155,46 @@ public class JGitFileSystem implements FileSystem,
     @Override
     public Iterable<Path> getRootDirectories() {
         checkClosed();
-        return new Iterable<Path>() {
+        return () -> new Iterator<Path>() {
+
+            Iterator<Ref> branches = null;
+
             @Override
-            public Iterator<Path> iterator() {
-                return new Iterator<Path>() {
+            public boolean hasNext() {
+                if ( branches == null ) {
+                    init();
+                }
+                return branches.hasNext();
+            }
 
-                    Iterator<Ref> branches = null;
+            private void init() {
+                branches = git.listRefs().iterator();
+            }
 
-                    @Override
-                    public boolean hasNext() {
-                        if ( branches == null ) {
-                            init();
-                        }
-                        return branches.hasNext();
-                    }
+            @Override
+            public Path next() {
 
-                    private void init() {
-                        branches = branchList( gitRepo, listMode ).iterator();
-                    }
+                if ( branches == null ) {
+                    init();
+                }
+                try {
+                    return JGitPathImpl.createRoot( JGitFileSystem.this, "/",
+                                                    shortenRefName( branches.next().getName() ) + "@" + name,
+                                                    false );
+                } catch ( NoSuchElementException e ) {
+                    throw new IllegalStateException(
+                            "The gitnio directory is in an invalid state. " +
+                                    "If you are an IntelliJ IDEA user, " +
+                                    "there is a known bug which requires specifying " +
+                                    "a custom directory for your git repository. " +
+                                    "You can specify a custom directory using '-Dorg.uberfire.nio.git.dir=/tmp/dir'. " +
+                                    "For more details please see https://issues.jboss.org/browse/UF-275.", e );
+                }
+            }
 
-                    @Override
-                    public Path next() {
-
-                        if ( branches == null ) {
-                            init();
-                        }
-                        try {
-                            return JGitPathImpl.createRoot( JGitFileSystem.this, "/",
-                                                            shortenRefName( branches.next().getName() ) + "@" + name,
-                                                            false );
-                        } catch ( NoSuchElementException e ) {
-                            throw new IllegalStateException(
-                                    "The gitnio directory is in an invalid state. " +
-                                            "If you are an IntelliJ IDEA user, " +
-                                            "there is a known bug which requires specifying " +
-                                            "a custom directory for your git repository. " +
-                                            "You can specify a custom directory using '-Dorg.uberfire.nio.git.dir=/tmp/dir'. " +
-                                            "For more details please see https://issues.jboss.org/browse/UF-275.", e );
-                        }
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-                };
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
             }
         };
     }
@@ -219,33 +202,28 @@ public class JGitFileSystem implements FileSystem,
     @Override
     public Iterable<FileStore> getFileStores() {
         checkClosed();
-        return new Iterable<FileStore>() {
+        return () -> new Iterator<FileStore>() {
+
+            private int i = 0;
+
             @Override
-            public Iterator<FileStore> iterator() {
-                return new Iterator<FileStore>() {
+            public boolean hasNext() {
+                return i < 1;
+            }
 
-                    private int i = 0;
+            @Override
+            public FileStore next() {
+                if ( i < 1 ) {
+                    i++;
+                    return fileStore;
+                } else {
+                    throw new NoSuchElementException();
+                }
+            }
 
-                    @Override
-                    public boolean hasNext() {
-                        return i < 1;
-                    }
-
-                    @Override
-                    public FileStore next() {
-                        if ( i < 1 ) {
-                            i++;
-                            return fileStore;
-                        } else {
-                            throw new NoSuchElementException();
-                        }
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-                };
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
             }
         };
     }
@@ -349,7 +327,7 @@ public class JGitFileSystem implements FileSystem,
                         '}';
             }
         };
-        events.put( ws, new ConcurrentLinkedQueue<WatchKey>() );
+        events.put( ws, new ConcurrentLinkedQueue<>() );
         watchServices.add( ws );
         return ws;
     }
@@ -359,11 +337,11 @@ public class JGitFileSystem implements FileSystem,
         if ( isClosed ) {
             return;
         }
-        gitRepo.getRepository().close();
+        git.getRepository().close();
         isClosed = true;
         try {
 
-            for ( final WatchService ws : new ArrayList<WatchService>( watchServices ) ) {
+            for ( final WatchService ws : new ArrayList<>( watchServices ) ) {
                 try {
                     ws.close();
                 } catch ( final Exception ex ) {
@@ -399,10 +377,7 @@ public class JGitFileSystem implements FileSystem,
         if ( fileStore != null ? !fileStore.equals( that.fileStore ) : that.fileStore != null ) {
             return false;
         }
-        if ( !gitRepo.equals( that.gitRepo ) ) {
-            return false;
-        }
-        if ( listMode != that.listMode ) {
+        if ( !git.equals( that.git ) ) {
             return false;
         }
         if ( !name.equals( that.name ) ) {
@@ -423,8 +398,7 @@ public class JGitFileSystem implements FileSystem,
     @Override
     public int hashCode() {
         int result = provider.hashCode();
-        result = 31 * result + gitRepo.hashCode();
-        result = 31 * result + ( listMode != null ? listMode.hashCode() : 0 );
+        result = 31 * result + git.hashCode();
         result = 31 * result + ( fileStore != null ? fileStore.hashCode() : 0 );
         result = 31 * result + name.hashCode();
         return result;

@@ -41,7 +41,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,9 +50,8 @@ import java.util.stream.Collectors;
 
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UserInfo;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.errors.UnsupportedCredentialItem;
@@ -69,8 +67,6 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.CredentialsProviderUserInfo;
 import org.eclipse.jgit.transport.JschConfigSessionFactory;
 import org.eclipse.jgit.transport.OpenSshConfig;
-import org.eclipse.jgit.transport.PostReceiveHook;
-import org.eclipse.jgit.transport.PreReceiveHook;
 import org.eclipse.jgit.transport.ReceiveCommand;
 import org.eclipse.jgit.transport.ReceivePack;
 import org.eclipse.jgit.transport.ServiceMayNotContinueException;
@@ -145,31 +141,30 @@ import org.uberfire.java.nio.fs.jgit.daemon.git.Daemon;
 import org.uberfire.java.nio.fs.jgit.daemon.git.DaemonClient;
 import org.uberfire.java.nio.fs.jgit.daemon.ssh.BaseGitCommand;
 import org.uberfire.java.nio.fs.jgit.daemon.ssh.GitSSHService;
-import org.uberfire.java.nio.fs.jgit.util.CommitContent;
-import org.uberfire.java.nio.fs.jgit.util.CopyCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.DefaultCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
-import org.uberfire.java.nio.fs.jgit.util.MoveCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.ProxyAuthenticator;
-import org.uberfire.java.nio.fs.jgit.util.RevertCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.commands.DiffBranches;
-import org.uberfire.java.nio.fs.jgit.util.commands.Fork;
-import org.uberfire.java.nio.fs.jgit.util.commands.Merge;
-import org.uberfire.java.nio.fs.jgit.util.commands.Mirror;
-import org.uberfire.java.nio.fs.jgit.util.commands.Squash;
+import org.uberfire.java.nio.fs.jgit.util.commands.PathUtil;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
+import org.uberfire.java.nio.fs.jgit.util.model.CopyCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.DefaultCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.MoveCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
+import org.uberfire.java.nio.fs.jgit.util.model.PathType;
+import org.uberfire.java.nio.fs.jgit.util.model.RevertCommitContent;
 import org.uberfire.java.nio.security.FileSystemAuthenticator;
 import org.uberfire.java.nio.security.FileSystemAuthorizer;
 import org.uberfire.java.nio.security.SecuredFileSystemProvider;
 
 import static java.nio.file.StandardCopyOption.*;
+import static java.util.Collections.*;
 import static org.eclipse.jgit.lib.Constants.*;
+import static org.uberfire.commons.data.Pair.*;
 import static org.uberfire.commons.validation.PortablePreconditions.*;
 import static org.uberfire.java.nio.base.dotfiles.DotFileUtils.*;
 import static org.uberfire.java.nio.file.StandardOpenOption.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.PathType.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
+import static org.uberfire.java.nio.fs.jgit.util.model.PathType.*;
 
 public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                                                Disposable {
@@ -184,8 +179,6 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
      * Specifies the list mode for the repository parent directory. Must match one of the enum constants defined in
      * {@link ListMode}.
      */
-    public static final String GIT_ENV_KEY_LIST_MODE = "listMode";
-
     public static final String GIT_ENV_KEY_DEST_PATH = "out-dir";
     public static final String GIT_ENV_KEY_USER_NAME = "username";
     public static final String GIT_ENV_KEY_PASSWORD = "password";
@@ -229,17 +222,17 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     private String sshPassphrase;
     private String sshIdleTimeout;
 
-    private final Map<String, JGitFileSystem> fileSystems = new ConcurrentHashMap<String, JGitFileSystem>();
-    private final Set<JGitFileSystem> closedFileSystems = new HashSet<JGitFileSystem>();
-    private final Map<Repository, JGitFileSystem> repoIndex = new ConcurrentHashMap<Repository, JGitFileSystem>();
-    private final Map<Repository, ClusterService> clusterMap = new ConcurrentHashMap<Repository, ClusterService>();
+    private final Map<String, JGitFileSystem> fileSystems = new ConcurrentHashMap<>();
+    private final Set<JGitFileSystem> closedFileSystems = new HashSet<>();
+    private final Map<Repository, JGitFileSystem> repoIndex = new ConcurrentHashMap<>();
+    private final Map<Repository, ClusterService> clusterMap = new ConcurrentHashMap<>();
 
     private final Map<String, String> fullHostNames = new HashMap<String, String>();
 
     private boolean isDefault;
 
     private final Object oldHeadsOfPendingDiffsLock = new Object();
-    private final Map<JGitFileSystem, Map<String, NotificationModel>> oldHeadsOfPendingDiffs = new ConcurrentHashMap<JGitFileSystem, Map<String, NotificationModel>>();
+    private final Map<JGitFileSystem, Map<String, NotificationModel>> oldHeadsOfPendingDiffs = new ConcurrentHashMap<>();
 
     private Daemon daemonService = null;
 
@@ -348,8 +341,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         closedFileSystems.remove( fileSystem );
         fileSystems.remove( fileSystem.id() );
 
-        repoIndex.remove( fileSystem.gitRepo().getRepository() );
-        clusterMap.remove( fileSystem.gitRepo().getRepository() );
+        repoIndex.remove( fileSystem.getGit().getRepository() );
+        clusterMap.remove( fileSystem.getGit().getRepository() );
     }
 
     public Set<JGitFileSystem> getOpenFileSystems() {
@@ -391,7 +384,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             if ( fs == null ) {
                 throw new RepositoryNotFoundException( name );
             }
-            return fs.gitRepo().getRepository();
+            return fs.getGit().getRepository();
         }
 
         public JGitFileSystem resolveFileSystem( final Repository repository ) {
@@ -500,18 +493,17 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 final File repoDir = new File( gitReposParentDir, repo.getK1() + repo.getK2() );
                 try {
                     if ( repoDir.isDirectory() ) {
-//                        final String name = repoDir.getName().substring( 0, repoDir.getName().indexOf( DOT_GIT_EXT ) );
                         final String name = repo.getK1() + repo.getK2().substring( 0, repo.getK2().indexOf( DOT_GIT_EXT ) );
-                        //Default to ListMode of null to avoid indexing scanning remote branches. Ideally the ListMode should
-                        //be identical to that used when the original JGitFileSystem was created however that information is not
-                        //persisted. Using a default of null rather than ALL is a safer default as *all* GIT repositories created
-                        //from within the workbench have a ListMode of null.
-                        final JGitFileSystem fs = new JGitFileSystem( this, fullHostNames, newRepository( repoDir, true ), name, null, buildCredential( null ) );
+                        final JGitFileSystem fs = new JGitFileSystem( this,
+                                                                      fullHostNames,
+                                                                      Git.createRepository( repoDir ),
+                                                                      name,
+                                                                      buildCredential( null ) );
                         LOG.debug( "Running GIT GC on '" + name + "'" );
-                        JGitUtil.gc( fs.gitRepo() );
+                        fs.getGit().gc();
                         LOG.debug( "Registering existing GIT filesystem '" + name + "' at " + repoDir );
                         fileSystems.put( name, fs );
-                        repoIndex.put( fs.gitRepo().getRepository(), fs );
+                        repoIndex.put( fs.getGit().getRepository(), fs );
                     } else {
                         LOG.debug( "Not registering " + repoDir + " as a GIT filesystem because it is not a directory" );
                     }
@@ -528,27 +520,20 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         final String[] topLevelRepositories = root.list( ( file, s ) -> s.endsWith( DOT_GIT_EXT ) );
 
         if ( topLevelRepositories != null ) {
-            List<Pair<String, String>> repos = Arrays
-                    .asList( topLevelRepositories )
-                    .stream()
+            final List<Pair<String, String>> repos = Arrays.stream( topLevelRepositories )
                     .map( dir -> Pair.newPair( "", dir ) ).collect( Collectors.toList() );
             repositories.addAll( repos );
         }
 
-        final String[] topLevelFolders = root.list( ( file, s ) -> {
-            return !s.endsWith( DOT_GIT_EXT );
-        } );
+        final String[] topLevelFolders = root.list( ( file, s ) -> !s.endsWith( DOT_GIT_EXT ) );
 
         if ( topLevelFolders != null ) {
-            Arrays
-                    .asList( topLevelFolders )
-                    .stream()
+            Arrays.stream( topLevelFolders )
                     .forEach( ( dir ) -> {
                                   final File subRoot = new File( root.getPath() + "/" + dir );
                                   final String[] repos = subRoot.list( ( file, name ) -> name.endsWith( DOT_GIT_EXT ) );
                                   if ( repos != null ) {
-                                      Arrays.asList( repos )
-                                              .stream()
+                                      Arrays.stream( repos )
                                               .forEach( ( repo ) -> {
                                                   repositories.add( Pair.newPair( dir + "/", repo ) );
                                               } );
@@ -561,81 +546,66 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     private void buildAndStartSSH() {
-        final ReceivePackFactory receivePackFactory = new ReceivePackFactory<BaseGitCommand>() {
-            @Override
-            public ReceivePack create( final BaseGitCommand req,
-                                       final Repository db ) throws ServiceNotEnabledException, ServiceNotAuthorizedException {
+        final ReceivePackFactory receivePackFactory = (ReceivePackFactory<BaseGitCommand>) ( req, db ) -> new ReceivePack( db ) {{
+            final ClusterService clusterService = clusterMap.get( db );
+            final JGitFileSystem fs = repoIndex.get( db );
+            final Map<String, RevCommit> oldTreeRefs = new HashMap<>();
 
-                return new ReceivePack( db ) {{
-                    final ClusterService clusterService = clusterMap.get( db );
-                    final JGitFileSystem fs = repoIndex.get( db );
-                    final Map<String, RevCommit> oldTreeRefs = new HashMap<String, RevCommit>();
+            setPreReceiveHook( ( rp, commands2 ) -> {
+                fs.lock();
+                if ( clusterService != null ) {
+                    clusterService.lock();
+                }
 
-                    setPreReceiveHook( new PreReceiveHook() {
-                        @Override
-                        public void onPreReceive( final ReceivePack rp,
-                                                  final Collection<ReceiveCommand> commands ) {
-                            fs.lock();
-                            if ( clusterService != null ) {
-                                clusterService.lock();
-                            }
+                for ( final ReceiveCommand command : commands2 ) {
+                    final RevCommit lastCommit = fs.getGit().getLastCommit( command.getRefName() );
+                    oldTreeRefs.put( command.getRefName(), lastCommit );
+                }
+            } );
 
-                            for ( final ReceiveCommand command : commands ) {
-                                final RevCommit lastCommit = JGitUtil.getLastCommit( fs.gitRepo(), command.getRefName() );
-                                oldTreeRefs.put( command.getRefName(), lastCommit );
-                            }
-                        }
-                    } );
+            setPostReceiveHook( ( rp, commands ) -> {
+                fs.unlock();
+                final String userName = req.getUser().getName();
+                for ( Map.Entry<String, RevCommit> oldTreeRef : oldTreeRefs.entrySet() ) {
+                    final List<RevCommit> commits = fs.getGit().listCommits( oldTreeRef.getValue(), fs.getGit().getLastCommit( oldTreeRef.getKey() ) );
+                    for ( final RevCommit revCommit : commits ) {
+                        final RevTree parent = revCommit.getParentCount() > 0 ? revCommit.getParent( 0 ).getTree() : null;
+                        notifyDiffs( fs,
+                                     oldTreeRef.getKey(),
+                                     "<ssh>",
+                                     userName,
+                                     revCommit.getFullMessage(),
+                                     parent,
+                                     revCommit.getTree() );
+                    }
+                }
 
-                    setPostReceiveHook( new PostReceiveHook() {
-                        @Override
-                        public void onPostReceive( final ReceivePack rp,
-                                                   final Collection<ReceiveCommand> commands ) {
-                            fs.unlock();
-                            final String userName = req.getUser().getName();
-                            for ( Map.Entry<String, RevCommit> oldTreeRef : oldTreeRefs.entrySet() ) {
-                                final List<RevCommit> commits = JGitUtil.getCommits( fs.gitRepo(), oldTreeRef.getKey(), oldTreeRef.getValue(), JGitUtil.getLastCommit( fs.gitRepo(), oldTreeRef.getKey() ) );
-                                for ( final RevCommit revCommit : commits ) {
-                                    final RevTree parent = revCommit.getParentCount() > 0 ? revCommit.getParent( 0 ).getTree() : null;
-                                    notifyDiffs( fs,
-                                                 oldTreeRef.getKey(),
-                                                 "<ssh>",
-                                                 userName,
-                                                 revCommit.getFullMessage(),
-                                                 parent,
-                                                 revCommit.getTree() );
-                                }
-                            }
+                if ( clusterService != null ) {
+                    //TODO {porcelli} hack, that should be addressed in future
+                    clusterService.broadcast( DEFAULT_IO_SERVICE_NAME,
+                                              new MessageType() {
 
-                            if ( clusterService != null ) {
-                                //TODO {porcelli} hack, that should be addressed in future
-                                clusterService.broadcast( DEFAULT_IO_SERVICE_NAME,
-                                                          new MessageType() {
+                                                  @Override
+                                                  public String toString() {
+                                                      return "SYNC_FS";
+                                                  }
 
-                                                              @Override
-                                                              public String toString() {
-                                                                  return "SYNC_FS";
-                                                              }
+                                                  @Override
+                                                  public int hashCode() {
+                                                      return "SYNC_FS".hashCode();
+                                                  }
+                                              },
+                                              new HashMap<String, String>() {{
+                                                  put( "fs_scheme", "git" );
+                                                  put( "fs_id", fs.id() );
+                                                  put( "fs_uri", fs.toString() );
+                                              }}
+                    );
 
-                                                              @Override
-                                                              public int hashCode() {
-                                                                  return "SYNC_FS".hashCode();
-                                                              }
-                                                          },
-                                                          new HashMap<String, String>() {{
-                                                              put( "fs_scheme", "git" );
-                                                              put( "fs_id", fs.id() );
-                                                              put( "fs_uri", fs.toString() );
-                                                          }}
-                                );
-
-                                clusterService.unlock();
-                            }
-                        }
-                    } );
-                }};
-            }
-        };
+                    clusterService.unlock();
+                }
+            } );
+        }};
 
         gitSSHService = new GitSSHService();
 
@@ -644,7 +614,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                              sshIdleTimeout,
                              sshAlgorithm,
                              receivePackFactory,
-                             new RepositoryResolverImpl<BaseGitCommand>() );
+                             new RepositoryResolverImpl<>() );
 
         gitSSHService.start();
     }
@@ -733,21 +703,6 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             throw new FileSystemAlreadyExistsException( "No filesystem for uri (" + uri + ") found." );
         }
 
-        ListBranchCommand.ListMode listMode;
-        if ( env.containsKey( GIT_ENV_KEY_LIST_MODE ) ) {
-            try {
-                listMode = ListBranchCommand.ListMode.valueOf( (String) env.get( GIT_ENV_KEY_LIST_MODE ) );
-            } catch ( Exception ex ) {
-                listMode = null;
-            }
-        } else {
-            listMode = null;
-        }
-
-        final Git git;
-        final CredentialsProvider credential;
-
-        boolean bare = true;
         final String outPath = (String) env.get( GIT_ENV_KEY_DEST_PATH );
         final File repoDest;
 
@@ -757,24 +712,27 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             repoDest = new File( gitReposParentDir, name + DOT_GIT_EXT );
         }
 
-        if ( env.containsKey( GIT_ENV_KEY_DEFAULT_REMOTE_NAME ) ) {
-            final String originURI = env.get( GIT_ENV_KEY_DEFAULT_REMOTE_NAME ).toString();
-            credential = buildCredential( env );
+        final Git git;
+        final CredentialsProvider credential = buildCredential( env );
 
-            if ( this.isForkOrigin( originURI ) ) {
-                git = new Fork( this.getGitRepoContainerDir(), originURI, name, credential ).execute().get();
-            } else {
-                new Mirror( repoDest, originURI, credential ).execute();
-                git = cloneRepository( repoDest, originURI, bare, credential );
+        if ( env.containsKey( GIT_ENV_KEY_DEFAULT_REMOTE_NAME ) ) {
+            final String origin = env.get( GIT_ENV_KEY_DEFAULT_REMOTE_NAME ).toString();
+            try {
+                if ( this.isForkOrigin( origin ) ) {
+                    git = Git.fork( this.getGitRepoContainerDir(), origin, name, credential );
+                } else {
+                    git = Git.clone( repoDest, origin, true, credential );
+                }
+            } catch ( InvalidRemoteException e ) {
+                throw new RuntimeException( e );
             }
         } else {
-            credential = buildCredential( null );
-            git = newRepository( repoDest, bare, hookDir );
+            git = Git.createRepository( repoDest, hookDir );
         }
 
-        final JGitFileSystem fs = new JGitFileSystem( this, fullHostNames, git, name, listMode, credential );
+        final JGitFileSystem fs = new JGitFileSystem( this, fullHostNames, git, name, credential );
         fileSystems.put( name, fs );
-        repoIndex.put( fs.gitRepo().getRepository(), fs );
+        repoIndex.put( fs.getGit().getRepository(), fs );
 
         boolean init = false;
 
@@ -785,8 +743,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         if ( !env.containsKey( GIT_ENV_KEY_DEFAULT_REMOTE_NAME ) && init ) {
             try {
                 final URI initURI = URI.create( getScheme() + "://master@" + name + "/readme.md" );
-                final CommentedOption op = setupOp( env );
-                final OutputStream stream = newOutputStream( getPath( initURI ), op );
+                final OutputStream stream = newOutputStream( getPath( initURI ), (CommentedOption) null );
                 final String _init = "Repository Init Content\n" +
                         "=======================\n" +
                         "\n" +
@@ -794,9 +751,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 stream.write( _init.getBytes() );
                 stream.close();
             } catch ( final Exception e ) {
-            }
-            if ( !bare ) {
-                //todo: checkout
+                LOG.info( "Repository initialization may have failed.", e );
             }
         }
 
@@ -861,26 +816,6 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
     }
 
-    private Optional<Pair<String, String>> extractOldName( final String name ) {
-        if ( name.contains( "/" ) ) {
-            String oldName = name.substring( name.indexOf( "/" ) + 1 );
-            return Optional.of( new Pair<String, String>( name, oldName ) );
-        } else {
-            return Optional.empty();
-        }
-
-    }
-
-    private String getRepoName( final URI uri ) {
-        String path = uri.getPath();
-        int indexOf = path.lastIndexOf( "/" );
-        return path.substring( indexOf + 1 );
-    }
-
-    private CommentedOption setupOp( final Map<String, ?> env ) {
-        return null;
-    }
-
     @Override
     public FileSystem getFileSystem( final URI uri )
             throws IllegalArgumentException, FileSystemNotFoundException, SecurityException {
@@ -901,15 +836,17 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         if ( hasSyncFlag( uri ) ) {
             try {
                 final String treeRef = "master";
-                final ObjectId oldHead = JGitUtil.getTreeRefObjectId( fileSystem.gitRepo().getRepository(), treeRef );
+                final ObjectId oldHead = fileSystem.getGit().getTreeFromRef( treeRef );
                 final Map<String, String> params = getQueryParams( uri );
                 try {
                     fileSystem.lock();
-                    syncRepository( fileSystem.gitRepo(), fileSystem.getCredential(), params.get( "sync" ), hasForceFlag( uri ) );
+                    final Pair<String, String> remote = Pair.newPair( "upstream", params.get( "sync" ) );
+                    fileSystem.getGit().fetch( fileSystem.getCredential(), remote, emptyList() );
+                    fileSystem.getGit().syncRemote( remote );
                 } finally {
                     fileSystem.unlock();
                 }
-                final ObjectId newHead = JGitUtil.getTreeRefObjectId( fileSystem.gitRepo().getRepository(), treeRef );
+                final ObjectId newHead = fileSystem.getGit().getTreeFromRef( treeRef );
                 notifyDiffs( fileSystem, treeRef, "<system>", "<system>", "", oldHead, newHead );
             } catch ( final Exception ex ) {
                 throw new IOException( "Failed to sync repository.", ex );
@@ -918,7 +855,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         if ( hasPushFlag( uri ) ) {
             try {
                 final Map<String, String> params = getQueryParams( uri );
-                pushRepository( fileSystem.gitRepo(), fileSystem.getCredential(), params.get( "push" ), hasForceFlag( uri ) );
+                fileSystem.getGit().push( fileSystem.getCredential(), newPair( "usptream", params.get( "push" ) ), hasForceFlag( uri ), emptyList() );
             } catch ( final Exception ex ) {
                 throw new IOException( "Failed to push repository.", ex );
             }
@@ -962,7 +899,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        return resolveInputStream( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
+        return gPath.getFileSystem().getGit().blobAsInputStream( gPath.getRefTree(), gPath.getPath() );
     }
 
     @Override
@@ -973,9 +910,9 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final Pair<PathType, ObjectId> result = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
 
-        if ( result.getK1().equals( PathType.DIRECTORY ) ) {
+        if ( result.getPathType().equals( PathType.DIRECTORY ) ) {
             throw new NotDirectoryException( path.toString() );
         }
 
@@ -1022,7 +959,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         return new CommitInfo( sessionId, name, email, message, timeZone, when );
     }
 
-    final CommentedOption extractCommentedOption( final Collection<? extends Option> options ) {
+    private CommentedOption extractCommentedOption( final Collection<? extends Option> options ) {
         for ( final Option option : options ) {
             if ( option instanceof CommentedOption ) {
                 return (CommentedOption) option;
@@ -1061,9 +998,9 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             }
         }
 
-        final Pair<PathType, ObjectId> result = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
 
-        if ( result.getK1().equals( PathType.DIRECTORY ) ) {
+        if ( result.getPathType().equals( PathType.DIRECTORY ) ) {
             throw new NotDirectoryException( path.toString() );
         }
 
@@ -1139,25 +1076,20 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         checkNotNull( "path", path );
         final DirectoryStream.Filter<Path> filter;
         if ( pfilter == null ) {
-            filter = new DirectoryStream.Filter<Path>() {
-                @Override
-                public boolean accept( final Path entry ) throws IOException {
-                    return true;
-                }
-            };
+            filter = entry -> true;
         } else {
             filter = pfilter;
         }
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final Pair<PathType, ObjectId> result = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
 
-        if ( !result.getK1().equals( PathType.DIRECTORY ) ) {
+        if ( !result.getPathType().equals( PathType.DIRECTORY ) ) {
             throw new NotDirectoryException( path.toString() );
         }
 
-        final List<JGitPathInfo> pathContent = listPathContent( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
+        final List<PathInfo> pathContent = gPath.getFileSystem().getGit().listPathContent( gPath.getRefTree(), gPath.getPath() );
 
         return new DirectoryStream<Path>() {
             boolean isClosed = false;
@@ -1176,9 +1108,9 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                     throw new IOException( "This stream is closed." );
                 }
                 return new Iterator<Path>() {
-                    private int i = -1;
-                    private Path nextEntry = null;
-                    public boolean atEof = false;
+                    int i = -1;
+                    Path nextEntry = null;
+                    boolean atEof = false;
 
                     @Override
                     public boolean hasNext() {
@@ -1216,7 +1148,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                                 break;
                             }
 
-                            final JGitPathInfo content = pathContent.get( i );
+                            final PathInfo content = pathContent.get( i );
                             final Path path = JGitPathImpl.create( gPath.getFileSystem(), "/" + content.getPath(), gPath.getHost(), content.getObjectId(), gPath.isRealPath() );
                             if ( filter.accept( path ) ) {
                                 result = path;
@@ -1244,9 +1176,9 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final Pair<PathType, ObjectId> result = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
 
-        if ( !result.getK1().equals( NOT_FOUND ) ) {
+        if ( !result.getPathType().equals( NOT_FOUND ) ) {
             throw new FileAlreadyExistsException( path.toString() );
         }
 
@@ -1296,7 +1228,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     private boolean deleteRepo( final FileSystem fileSystem ) {
-        final File gitDir = ( (JGitFileSystem) fileSystem ).gitRepo().getRepository().getDirectory();
+        final File gitDir = ( (JGitFileSystem) fileSystem ).getGit().getRepository().getDirectory();
         fileSystem.close();
         fileSystem.dispose();
 
@@ -1314,14 +1246,14 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
     public void deleteAsset( final JGitPathImpl path,
                              final DeleteOption... options ) {
-        final Pair<PathType, ObjectId> result = checkPath( path.getFileSystem().gitRepo(), path.getRefTree(), path.getPath() );
+        final PathInfo result = path.getFileSystem().getGit().getPathInfo( path.getRefTree(), path.getPath() );
 
-        if ( result.getK1().equals( PathType.DIRECTORY ) ) {
+        if ( result.getPathType().equals( PathType.DIRECTORY ) ) {
             if ( deleteNonEmptyDirectory( options ) ) {
                 deleteResource( path, options );
                 return;
             }
-            final List<JGitPathInfo> content = listPathContent( path.getFileSystem().gitRepo(), path.getRefTree(), path.getPath() );
+            final List<PathInfo> content = path.getFileSystem().getGit().listPathContent(path.getRefTree(), path.getPath() );
             if ( content.size() == 1 && content.get( 0 ).getPath().equals( path.getPath().substring( 1 ) + "/.gitignore" ) ) {
                 delete( path.resolve( ".gitignore" ) );
                 deleteResource( path, options );
@@ -1330,15 +1262,15 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             throw new DirectoryNotEmptyException( path.toString() );
         }
 
-        if ( result.getK1().equals( NOT_FOUND ) ) {
+        if ( result.getPathType().equals( NOT_FOUND ) ) {
             throw new NoSuchFileException( path.toString() );
         }
 
         deleteResource( path, options );
     }
 
-    void deleteResource( final JGitPathImpl path,
-                         final DeleteOption... options ) {
+    private void deleteResource( final JGitPathImpl path,
+                                 final DeleteOption... options ) {
         delete( path, buildCommitInfo( "delete {" + path.getPath() + "}", Arrays.asList( options ) ) );
     }
 
@@ -1354,7 +1286,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     public void deleteBranch( final JGitPathImpl path ) {
-        final Ref branch = getBranch( path.getFileSystem().gitRepo(), path.getRefTree() );
+        final Ref branch = path.getFileSystem().getGit().getRef( path.getRefTree() );
 
         if ( branch == null ) {
             throw new NoSuchFileException( path.toString() );
@@ -1362,7 +1294,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         try {
             path.getFileSystem().lock();
-            JGitUtil.deleteBranch( path.getFileSystem().gitRepo(), branch );
+            path.getFileSystem().getGit().deleteRef( branch );
         } finally {
             path.getFileSystem().unlock();
         }
@@ -1388,32 +1320,24 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     public boolean deleteBranchIfExists( final JGitPathImpl path ) {
-        final Ref branch = getBranch( path.getFileSystem().gitRepo(), path.getRefTree() );
-
-        if ( branch == null ) {
+        try {
+            deleteBranch( path );
+            return true;
+        } catch ( final NoSuchFileException ignored ) {
             return false;
         }
-
-        try {
-            path.getFileSystem().lock();
-            JGitUtil.deleteBranch( path.getFileSystem().gitRepo(), branch );
-        } finally {
-            path.getFileSystem().unlock();
-        }
-
-        return true;
     }
 
     public boolean deleteAssetIfExists( final JGitPathImpl path,
                                         final DeleteOption... options ) {
-        final Pair<PathType, ObjectId> result = checkPath( path.getFileSystem().gitRepo(), path.getRefTree(), path.getPath() );
+        final PathInfo result = path.getFileSystem().getGit().getPathInfo( path.getRefTree(), path.getPath() );
 
-        if ( result.getK1().equals( PathType.DIRECTORY ) ) {
+        if ( result.getPathType().equals( PathType.DIRECTORY ) ) {
             if ( deleteNonEmptyDirectory( options ) ) {
                 deleteResource( path, options );
                 return true;
             }
-            final List<JGitPathInfo> content = listPathContent( path.getFileSystem().gitRepo(), path.getRefTree(), path.getPath() );
+            final List<PathInfo> content = path.getFileSystem().getGit().listPathContent( path.getRefTree(), path.getPath() );
             if ( content.size() == 1 && content.get( 0 ).getPath().equals( path.getPath().substring( 1 ) + "/.gitignore" ) ) {
                 delete( path.resolve( ".gitignore" ) );
                 return true;
@@ -1421,7 +1345,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             throw new DirectoryNotEmptyException( path.toString() );
         }
 
-        if ( result.getK1().equals( NOT_FOUND ) ) {
+        if ( result.getPathType().equals( NOT_FOUND ) ) {
             return false;
         }
 
@@ -1476,8 +1400,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         try {
             target.getFileSystem().lock();
-            final Git repo = source.getFileSystem().gitRepo();
-            new Merge( source.getFileSystem().gitRepo(), source.getRefTree(), target.getRefTree() ).execute();
+            source.getFileSystem().getGit().merge( source.getRefTree(), target.getRefTree() );
         } finally {
             target.getFileSystem().unlock();
         }
@@ -1489,7 +1412,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                              final String... commits ) {
         try {
             target.getFileSystem().lock();
-            JGitUtil.cherryPick( source.getFileSystem().gitRepo().getRepository(), target.getRefTree(), commits );
+            source.getFileSystem().getGit().cherryPick( target, commits );
         } finally {
             target.getFileSystem().unlock();
         }
@@ -1510,16 +1433,16 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     private void copyAsset( final JGitPathImpl source,
                             final JGitPathImpl target,
                             final CopyOption... options ) {
-        final Pair<PathType, ObjectId> sourceResult = checkPath( source.getFileSystem().gitRepo(), source.getRefTree(), source.getPath() );
-        final Pair<PathType, ObjectId> targetResult = checkPath( target.getFileSystem().gitRepo(), target.getRefTree(), target.getPath() );
+        final PathInfo sourceResult = source.getFileSystem().getGit().getPathInfo( source.getRefTree(), source.getPath() );
+        final PathInfo targetResult = target.getFileSystem().getGit().getPathInfo( target.getRefTree(), target.getPath() );
 
-        if ( !isRoot( target ) && targetResult.getK1() != NOT_FOUND ) {
+        if ( !isRoot( target ) && targetResult.getPathType() != NOT_FOUND ) {
             if ( !contains( options, StandardCopyOption.REPLACE_EXISTING ) ) {
                 throw new FileAlreadyExistsException( target.toString() );
             }
         }
 
-        if ( sourceResult.getK1() == NOT_FOUND ) {
+        if ( sourceResult.getPathType() == NOT_FOUND ) {
             throw new NoSuchFileException( target.toString() );
         }
 
@@ -1529,7 +1452,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             copyAssetContent( source, target, options );
         } else {
             final Map<JGitPathImpl, JGitPathImpl> sourceDest = new HashMap<JGitPathImpl, JGitPathImpl>();
-            if ( sourceResult.getK1() == DIRECTORY ) {
+            if ( sourceResult.getPathType() == DIRECTORY ) {
                 sourceDest.putAll( mapDirectoryContent( source, target, options ) );
             } else {
                 sourceDest.put( source, target );
@@ -1542,20 +1465,20 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     private void copyAssetContent( final JGitPathImpl source,
                                    final JGitPathImpl target,
                                    final CopyOption... options ) {
-        final Pair<PathType, ObjectId> sourceResult = checkPath( source.getFileSystem().gitRepo(), source.getRefTree(), source.getPath() );
-        final Pair<PathType, ObjectId> targetResult = checkPath( target.getFileSystem().gitRepo(), target.getRefTree(), target.getPath() );
+        final PathInfo sourceResult = source.getFileSystem().getGit().getPathInfo( source.getRefTree(), source.getPath() );
+        final PathInfo targetResult = target.getFileSystem().getGit().getPathInfo( target.getRefTree(), target.getPath() );
 
-        if ( !isRoot( target ) && targetResult.getK1() != NOT_FOUND ) {
+        if ( !isRoot( target ) && targetResult.getPathType() != NOT_FOUND ) {
             if ( !contains( options, StandardCopyOption.REPLACE_EXISTING ) ) {
                 throw new FileAlreadyExistsException( target.toString() );
             }
         }
 
-        if ( sourceResult.getK1() == NOT_FOUND ) {
+        if ( sourceResult.getPathType() == NOT_FOUND ) {
             throw new NoSuchFileException( target.toString() );
         }
 
-        if ( sourceResult.getK1() == DIRECTORY ) {
+        if ( sourceResult.getPathType() == DIRECTORY ) {
             copyDirectory( source, target, options );
             return;
         }
@@ -1579,8 +1502,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         final List<JGitPathImpl> directories = new ArrayList<JGitPathImpl>();
         for ( final Path path : newDirectoryStream( source, null ) ) {
             final JGitPathImpl gPath = toPathImpl( path );
-            final Pair<PathType, ObjectId> pathResult = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
-            if ( pathResult.getK1() == DIRECTORY ) {
+            final PathInfo pathResult = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
+            if ( pathResult.getPathType() == DIRECTORY ) {
                 directories.add( gPath );
                 continue;
             }
@@ -1665,14 +1588,14 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                                final JGitPathImpl target ) {
         try {
             target.getFileSystem().lock();
-            JGitUtil.createBranch( source.getFileSystem().gitRepo(), source.getRefTree(), target.getRefTree() );
+            source.getFileSystem().getGit().createRef( source.getRefTree(), target.getRefTree() );
         } finally {
             target.getFileSystem().unlock();
         }
     }
 
     private boolean existsBranch( final JGitPathImpl path ) {
-        return hasBranch( path.getFileSystem().gitRepo(), path.getRefTree() );
+        return path.getFileSystem().getGit().getRef( path.getRefTree() ) != null;
     }
 
     private boolean isBranch( final JGitPathImpl path ) {
@@ -1734,16 +1657,16 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     private void moveAsset( final JGitPathImpl source,
                             final JGitPathImpl target,
                             final CopyOption... options ) {
-        final Pair<PathType, ObjectId> sourceResult = checkPath( source.getFileSystem().gitRepo(), source.getRefTree(), source.getPath() );
-        final Pair<PathType, ObjectId> targetResult = checkPath( target.getFileSystem().gitRepo(), target.getRefTree(), target.getPath() );
+        final PathInfo sourceResult = source.getFileSystem().getGit().getPathInfo( source.getRefTree(), source.getPath() );
+        final PathInfo targetResult = target.getFileSystem().getGit().getPathInfo( target.getRefTree(), target.getPath() );
 
-        if ( !isRoot( target ) && targetResult.getK1() != NOT_FOUND ) {
+        if ( !isRoot( target ) && targetResult.getPathType() != NOT_FOUND ) {
             if ( !contains( options, StandardCopyOption.REPLACE_EXISTING ) ) {
                 throw new FileAlreadyExistsException( target.toString() );
             }
         }
 
-        if ( sourceResult.getK1() == NOT_FOUND ) {
+        if ( sourceResult.getPathType() == NOT_FOUND ) {
             throw new NoSuchFileException( target.toString() );
         }
 
@@ -1752,7 +1675,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             delete( source );
         } else {
             final Map<JGitPathImpl, JGitPathImpl> fromTo = new HashMap<JGitPathImpl, JGitPathImpl>();
-            if ( sourceResult.getK1() == DIRECTORY ) {
+            if ( sourceResult.getPathType() == DIRECTORY ) {
                 fromTo.putAll( mapDirectoryContent( source, target, options ) );
             } else {
                 fromTo.put( source, target );
@@ -1768,8 +1691,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         final Map<JGitPathImpl, JGitPathImpl> fromTo = new HashMap<JGitPathImpl, JGitPathImpl>();
         for ( final Path path : newDirectoryStream( source, null ) ) {
             final JGitPathImpl gPath = toPathImpl( path );
-            final Pair<PathType, ObjectId> pathResult = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
-            if ( pathResult.getK1() == DIRECTORY ) {
+            final PathInfo pathResult = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
+            if ( pathResult.getPathType() == DIRECTORY ) {
                 fromTo.putAll( mapDirectoryContent( gPath, composePath( target, (JGitPathImpl) gPath.getFileName() ) ) );
             } else {
                 final JGitPathImpl gTarget = composePath( target, (JGitPathImpl) gPath.getFileName() );
@@ -1786,7 +1709,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                             final CopyOption... options ) {
         final Map<String, String> result = new HashMap<String, String>( fromTo.size() );
         for ( final Map.Entry<JGitPathImpl, JGitPathImpl> fromToEntry : fromTo.entrySet() ) {
-            result.put( fixPath( fromToEntry.getKey().getPath() ), fixPath( fromToEntry.getValue().getPath() ) );
+            result.put( PathUtil.normalize( fromToEntry.getKey().getPath() ), PathUtil.normalize( fromToEntry.getValue().getPath() ) );
         }
         commit( source, buildCommitInfo( "moving from {" + source.getPath() + "} to {" + target.getPath() + "}", Arrays.asList( options ) ), new MoveCommitContent( result ) );
     }
@@ -1797,7 +1720,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                             final CopyOption... options ) {
         final Map<String, String> result = new HashMap<String, String>( sourceDest.size() );
         for ( final Map.Entry<JGitPathImpl, JGitPathImpl> sourceDestEntry : sourceDest.entrySet() ) {
-            result.put( fixPath( sourceDestEntry.getKey().getPath() ), fixPath( sourceDestEntry.getValue().getPath() ) );
+            result.put( PathUtil.normalize( sourceDestEntry.getKey().getPath() ), PathUtil.normalize( sourceDestEntry.getValue().getPath() ) );
         }
         commit( source, buildCommitInfo( "copy from {" + source.getPath() + "} to {" + target.getPath() + "}", Arrays.asList( options ) ), new CopyCommitContent( result ) );
     }
@@ -1812,10 +1735,10 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         final JGitPathImpl gPathA = toPathImpl( pathA );
         final JGitPathImpl gPathB = toPathImpl( pathB );
 
-        final Pair<PathType, ObjectId> resultA = checkPath( gPathA.getFileSystem().gitRepo(), gPathA.getRefTree(), gPathA.getPath() );
-        final Pair<PathType, ObjectId> resultB = checkPath( gPathB.getFileSystem().gitRepo(), gPathB.getRefTree(), gPathB.getPath() );
+        final PathInfo resultA = gPathA.getFileSystem().getGit().getPathInfo( gPathA.getRefTree(), gPathA.getPath() );
+        final PathInfo resultB = gPathB.getFileSystem().getGit().getPathInfo( gPathB.getRefTree(), gPathB.getPath() );
 
-        if ( resultA.getK1() == PathType.FILE && resultA.getK2().equals( resultB.getK2() ) ) {
+        if ( resultA.getPathType() == PathType.FILE && resultA.getObjectId().equals( resultB.getObjectId() ) ) {
             return true;
         }
 
@@ -1841,7 +1764,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             throws IOException, SecurityException {
         checkNotNull( "path", path );
 
-        return new JGitFileStore( toPathImpl( path ).getFileSystem().gitRepo().getRepository() );
+        return new JGitFileStore( toPathImpl( path ).getFileSystem().getGit().getRepository() );
     }
 
     @Override
@@ -1852,9 +1775,9 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final Pair<PathType, ObjectId> result = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
 
-        if ( result.getK1().equals( NOT_FOUND ) ) {
+        if ( result.getPathType().equals( NOT_FOUND ) ) {
             throw new NoSuchFileException( path.toString() );
         }
     }
@@ -1869,8 +1792,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final Pair<PathType, ObjectId> pathResult = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
-        if ( pathResult.getK1().equals( NOT_FOUND ) ) {
+        final PathInfo pathResult = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
+        if ( pathResult.getPathType().equals( NOT_FOUND ) ) {
             throw new NoSuchFileException( path.toString() );
         }
 
@@ -1929,8 +1852,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final Pair<PathType, ObjectId> pathResult = checkPath( gPath.getFileSystem().gitRepo(), gPath.getRefTree(), gPath.getPath() );
-        if ( pathResult.getK1().equals( NOT_FOUND ) ) {
+        final PathInfo pathResult = gPath.getFileSystem().getGit().getPathInfo( gPath.getRefTree(), gPath.getPath() );
+        if ( pathResult.getPathType().equals( NOT_FOUND ) ) {
             throw new NoSuchFileException( path.toString() );
         }
 
@@ -1962,11 +1885,10 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         }
 
         if ( s[ 0 ].equals( "diff" ) ) {
-            final Repository repo = ( (JGitPathImpl) path ).getFileSystem().gitRepo().getRepository();
             final String[] branches = s[ 1 ].split( "," );
             final String branchA = branches[ 0 ];
             final String branchB = branches[ 1 ];
-            final List<FileDiff> diffs = new DiffBranches( repo, branchA, branchB ).execute().get();
+            final List<FileDiff> diffs = ( (JGitPathImpl) path ).getFileSystem().getGit().diffRefs( branchA, branchB );
             final HashMap<String, Object> map = new HashMap<>();
             map.put( "diff", diffs );
             return map;
@@ -2035,26 +1957,15 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
     private void lockAndSquash( final Path path,
                                 final SquashOption value ) {
-        JGitFileSystem fileSystem = (JGitFileSystem) path.getFileSystem();
+        final JGitFileSystem fileSystem = (JGitFileSystem) path.getFileSystem();
         try {
             fileSystem.lock();
             final JGitPathImpl gSource = toPathImpl( path );
-            final Git git = gSource.getFileSystem().gitRepo();
-            String branch = getBranchName( gSource );
             String commitMessage = checkNotEmpty( "commitMessage", value.getMessage() );
             String startCommit = checkNotEmpty( "startCommit", value.getRecord().id() );
-
-            new Squash( git, branch, startCommit, commitMessage ).execute();
+            gSource.getFileSystem().getGit().squash( gSource.getRefTree(), startCommit, commitMessage );
         } finally {
             fileSystem.unlock();
-        }
-    }
-
-    private String getBranchName( final JGitPathImpl gSource ) {
-        try {
-            return gSource.getFileSystem().gitRepo().getRepository().getBranch();
-        } catch ( java.io.IOException e ) {
-            throw new IOException( "Impossible to get Branch Name", e );
         }
     }
 
@@ -2073,7 +1984,6 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 throw new IllegalArgumentException( "Parameter named '" + paramName + "' is invalid, missing host repository!" );
             }
         }
-
     }
 
     public String extractHost( final URI uri ) {
@@ -2119,16 +2029,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         if ( index != -1 ) {
             host = host.substring( index + 1 );
         }
-        String path = uri.getPath();
-
-        String complex = "@" + host;
-        int pathIndex = path.indexOf( complex );
-        if ( pathIndex != -1 ) {
-            path = path.substring( pathIndex + complex.length() );
-        }
 
         return host;
-
     }
 
     private String extractRepoNameWithoutFolder( final URI uri ) {
@@ -2162,7 +2064,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         return uri.getQuery() != null && uri.getQuery().contains( "push" );
     }
 
-    //by spec, it should be a list of pairs, but here we're just uisng a map.
+    //by spec, it should be a list of pairs, but here we're just using a map.
     private static Map<String, String> getQueryParams( final URI uri ) {
         final String[] params = uri.getQuery().split( "&" );
         return new HashMap<String, String>( params.length ) {{
@@ -2276,30 +2178,30 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         try {
             fileSystem.lock();
 
-            final Git git = fileSystem.gitRepo();
+            final Git git = fileSystem.getGit();
             final String branchName = path.getRefTree();
             final boolean batchState = fileSystem.isOnBatch();
             final boolean amend = batchState && fileSystem.isHadCommitOnBatchState( path.getRoot() );
 
-            final ObjectId oldHead = JGitUtil.getTreeRefObjectId( path.getFileSystem().gitRepo().getRepository(), branchName );
+            final ObjectId oldHead = path.getFileSystem().getGit().getTreeFromRef( branchName );
 
             final boolean hasCommit;
             if ( batchState && fileSystem.getBatchCommitInfo() != null ) {
-                hasCommit = JGitUtil.commit( git, branchName, fileSystem.getBatchCommitInfo(), amend, commitContent );
+                hasCommit = git.commit( branchName, fileSystem.getBatchCommitInfo(), amend, null, commitContent );
             } else {
-                hasCommit = JGitUtil.commit( git, branchName, commitInfo, amend, commitContent );
+                hasCommit = git.commit( branchName, commitInfo, amend, null, commitContent );
             }
 
             if ( !batchState ) {
                 if ( hasCommit ) {
                     int value = fileSystem.incrementAndGetCommitCount();
                     if ( value >= commitLimit ) {
-                        JGitUtil.gc( git );
+                        git.gc();
                         fileSystem.resetCommitCount();
                     }
                 }
 
-                final ObjectId newHead = JGitUtil.getTreeRefObjectId( path.getFileSystem().gitRepo().getRepository(), branchName );
+                final ObjectId newHead = path.getFileSystem().getGit().getTreeFromRef( branchName );
 
                 postCommitHook( git.getRepository() );
 
@@ -2339,7 +2241,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         synchronized ( oldHeadsOfPendingDiffsLock ) {
             for ( Map.Entry<JGitFileSystem, Map<String, NotificationModel>> jGitFileSystemMapEntry : oldHeadsOfPendingDiffs.entrySet() ) {
                 for ( Map.Entry<String, NotificationModel> branchNameNotificationModelEntry : jGitFileSystemMapEntry.getValue().entrySet() ) {
-                    final ObjectId newHead = JGitUtil.getTreeRefObjectId( jGitFileSystemMapEntry.getKey().gitRepo().getRepository(), branchNameNotificationModelEntry.getKey() );
+                    final ObjectId newHead = jGitFileSystemMapEntry.getKey().getGit().getTreeFromRef( branchNameNotificationModelEntry.getKey() );
                     try {
                         notifyDiffs( jGitFileSystemMapEntry.getKey(),
                                      branchNameNotificationModelEntry.getKey(),
@@ -2357,7 +2259,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             for ( JGitFileSystem fileSystem : oldHeadsOfPendingDiffs.keySet() ) {
                 int value = fileSystem.incrementAndGetCommitCount();
                 if ( value >= commitLimit ) {
-                    JGitUtil.gc( fileSystem.gitRepo() );
+                    fileSystem.getGit().gc();
                     fileSystem.resetCommitCount();
                 }
             }
@@ -2384,8 +2286,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         final String host = tree + "@" + fs.getName();
         final Path root = JGitPathImpl.createRoot( fs, "/", host, false );
 
-        final List<DiffEntry> diff = JGitUtil.getDiff( fs.gitRepo().getRepository(), oldHead, newHead );
-        final List<WatchEvent<?>> events = new ArrayList<WatchEvent<?>>( diff.size() );
+        final List<DiffEntry> diff = fs.getGit().listDiffs( oldHead, newHead );
+        final List<WatchEvent<?>> events = new ArrayList<>( diff.size() );
 
         for ( final DiffEntry diffEntry : diff ) {
             final Path oldPath;
@@ -2397,7 +2299,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
             final Path newPath;
             if ( !diffEntry.getNewPath().equals( DiffEntry.DEV_NULL ) ) {
-                JGitPathInfo pathInfo = resolvePath( fs.gitRepo(), tree, diffEntry.getNewPath() );
+                final PathInfo pathInfo = fs.getGit().getPathInfo( tree, diffEntry.getNewPath() );
                 newPath = JGitPathImpl.create( fs, "/" + pathInfo.getPath(), host, pathInfo.getObjectId(), false );
             } else {
                 newPath = null;

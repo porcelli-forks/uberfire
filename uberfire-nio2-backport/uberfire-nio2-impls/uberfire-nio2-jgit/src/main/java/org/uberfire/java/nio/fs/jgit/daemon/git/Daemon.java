@@ -16,8 +16,6 @@
 
 package org.uberfire.java.nio.fs.jgit.daemon.git;
 
-import static org.uberfire.commons.validation.PortablePreconditions.*;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -44,6 +42,8 @@ import org.eclipse.jgit.transport.resolver.UploadPackFactory;
 import org.uberfire.commons.async.DescriptiveRunnable;
 import org.uberfire.commons.async.SimpleAsyncExecutorService;
 import org.uberfire.java.nio.fs.jgit.daemon.filters.HiddenBranchRefFilter;
+
+import static org.uberfire.commons.validation.PortablePreconditions.*;
 
 /**
  * Basic daemon for the anonymous <code>git://</code> transport protocol.
@@ -76,35 +76,27 @@ public class Daemon {
     /**
      * Configures a new daemon for the specified network address. The daemon will not attempt to bind to an address or
      * accept connections until a call to {@link #start()}.
-     *
-     * @param addr
-     *            address to listen for connections on. If null, any available port will be chosen on all network
-     *            interfaces.
-     * @param acceptThreadPool
-     *            source of threads for waiting for inbound socket connections. Every time the daemon is started or
-     *            restarted, a new task will be submitted to this pool. When the daemon is stopped, the task completes.
+     * @param addr address to listen for connections on. If null, any available port will be chosen on all network
+     * interfaces.
+     * @param acceptThreadPool source of threads for waiting for inbound socket connections. Every time the daemon is started or
+     * restarted, a new task will be submitted to this pool. When the daemon is stopped, the task completes.
      */
-    public Daemon( final InetSocketAddress addr, Executor acceptThreadPool ) {
+    public Daemon( final InetSocketAddress addr,
+                   Executor acceptThreadPool ) {
         myAddress = addr;
         this.acceptThreadPool = checkNotNull( "acceptThreadPool", acceptThreadPool );
 
         repositoryResolver = (RepositoryResolver<DaemonClient>) RepositoryResolver.NONE;
 
-        uploadPackFactory = new UploadPackFactory<DaemonClient>() {
-            @Override
-            public UploadPack create( DaemonClient req,
-                                      Repository db )
-                                              throws ServiceNotEnabledException,
-                                              ServiceNotAuthorizedException {
-                final UploadPack up = new UploadPack( db );
-                up.setTimeout( getTimeout() );
-                up.setRefFilter( new HiddenBranchRefFilter() );
-                final PackConfig config = new PackConfig( db );
-                config.setCompressionLevel( Deflater.BEST_COMPRESSION );
-                up.setPackConfig( config );
+        uploadPackFactory = ( req, db ) -> {
+            final UploadPack up = new UploadPack( db );
+            up.setTimeout( getTimeout() );
+            up.setRefFilter( new HiddenBranchRefFilter() );
+            final PackConfig config = new PackConfig( db );
+            config.setCompressionLevel( Deflater.BEST_COMPRESSION );
+            up.setPackConfig( config );
 
-                return up;
-            }
+            return up;
         };
 
         services = new DaemonService[]{ new DaemonService( "upload-pack", "uploadpack" ) {
@@ -115,8 +107,8 @@ public class Daemon {
             @Override
             protected void execute( final DaemonClient dc,
                                     final Repository db ) throws IOException,
-                                    ServiceNotEnabledException,
-                                    ServiceNotAuthorizedException {
+                    ServiceNotEnabledException,
+                    ServiceNotAuthorizedException {
                 UploadPack up = uploadPackFactory.create( dc, db );
                 InputStream in = dc.getInputStream();
                 OutputStream out = dc.getOutputStream();
@@ -170,7 +162,6 @@ public class Daemon {
 
     /**
      * Sets the resolver that locates repositories by name.
-     *
      * @param resolver the resolver instance.
      */
     public void setRepositoryResolver( RepositoryResolver<DaemonClient> resolver ) {
@@ -179,7 +170,6 @@ public class Daemon {
 
     /**
      * Sets the factory that constructs and configures the per-request UploadPack.
-     *
      * @param factory the factory. If null upload-pack is disabled.
      */
     @SuppressWarnings("unchecked")
@@ -194,11 +184,8 @@ public class Daemon {
     /**
      * Starts this daemon listening for connections on a thread supplied by the executor service given to the
      * constructor. The daemon can be stopped by a call to {@link #stop()} or by shutting down the ExecutorService.
-     *
-     * @throws IOException
-     *             the server socket could not be opened.
-     * @throws IllegalStateException
-     *             the daemon is already running.
+     * @throws IOException the server socket could not be opened.
+     * @throws IllegalStateException the daemon is already running.
      */
     public synchronized void start() throws IOException {
         if ( run.get() ) {
@@ -311,7 +298,7 @@ public class Daemon {
 
     Repository openRepository( DaemonClient client,
                                String name )
-                                       throws ServiceMayNotContinueException {
+            throws ServiceMayNotContinueException {
         // Assume any attempt to use \ was by a Windows client
         // and correct to the more typical / used in Git URIs.
         //

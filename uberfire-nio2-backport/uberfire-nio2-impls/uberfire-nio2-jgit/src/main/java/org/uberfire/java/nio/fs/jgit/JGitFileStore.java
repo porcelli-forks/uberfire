@@ -67,20 +67,14 @@ public class JGitFileStore implements FileStore {
     public boolean supportsFileAttributeView( final Class<? extends FileAttributeView> type ) {
         checkNotNull( "type", type );
 
-        if ( type.equals( BasicFileAttributeView.class ) ) {
-            return true;
-        }
-        return false;
+        return type.equals( BasicFileAttributeView.class );
     }
 
     @Override
     public boolean supportsFileAttributeView( final String name ) {
         checkNotEmpty( "name", name );
 
-        if ( name.equals( "basic" ) ) {
-            return true;
-        }
-        return false;
+        return name.equals( "basic" );
     }
 
     @Override

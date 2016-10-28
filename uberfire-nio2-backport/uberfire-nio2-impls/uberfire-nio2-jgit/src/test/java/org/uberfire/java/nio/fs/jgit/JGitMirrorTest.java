@@ -29,11 +29,10 @@ import org.fest.assertions.core.Condition;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.uberfire.java.nio.fs.jgit.util.commands.Mirror;
+import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
+import org.uberfire.java.nio.fs.jgit.util.commands.ListRefs;
 
-import static org.eclipse.jgit.api.ListBranchCommand.ListMode.*;
 import static org.fest.assertions.api.Assertions.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitMirrorTest extends AbstractTestInfra {
 
@@ -45,21 +44,20 @@ public class JGitMirrorTest extends AbstractTestInfra {
     public void testToHTTPMirrorSuccess() throws IOException, GitAPIException {
         final File parentFolder = createTempDirectory();
         final File directory = new File( parentFolder, TARGET_GIT );
-        new Mirror( directory, ORIGIN, CredentialsProvider.getDefault() ).execute();
+        new Clone( directory, ORIGIN, false, CredentialsProvider.getDefault() ).execute();
 
         final Git cloned = Git.open( directory );
 
         assertThat( cloned ).isNotNull();
 
-        assertThat( branchList( cloned, ALL ) ).is( new Condition<List<Ref>>() {
+        assertThat(  new ListRefs( cloned.getRepository() ).execute()  ).is( new Condition<List<Ref>>() {
             @Override
             public boolean matches( final List<Ref> refs ) {
                 return refs.size() > 0;
             }
         } );
 
-        assertThat( branchList( cloned, ALL ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
-        assertThat( branchList( cloned, ALL ).get( 2 ).getName() ).isEqualTo( "refs/remotes/origin/master" );
+        assertThat(  new ListRefs( cloned.getRepository() ).execute() .get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
 
         URIish remoteUri = cloned.remoteList().call().get( 0 ).getURIs().get( 0 );
         String remoteUrl = remoteUri.getScheme() + "://" + remoteUri.getHost() + remoteUri.getPath();
@@ -71,26 +69,24 @@ public class JGitMirrorTest extends AbstractTestInfra {
     public void testEmptyCredentials() throws IOException, GitAPIException {
         final File parentFolder = createTempDirectory();
         final File directory = new File( parentFolder, TARGET_GIT );
-        new Mirror( directory, ORIGIN, null ).execute();
+        new Clone( directory, ORIGIN, false, null ).execute();
 
         final Git cloned = Git.open( directory );
 
         assertThat( cloned ).isNotNull();
 
-        assertThat( branchList( cloned, ALL ) ).is( new Condition<List<Ref>>() {
+        assertThat(  new ListRefs( cloned.getRepository() ).execute()  ).is( new Condition<List<Ref>>() {
             @Override
             public boolean matches( final List<Ref> refs ) {
                 return refs.size() > 0;
             }
         } );
 
-        assertThat( branchList( cloned, ALL ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
-        assertThat( branchList( cloned, ALL ).get( 2 ).getName() ).isEqualTo( "refs/remotes/origin/master" );
+        assertThat(  new ListRefs( cloned.getRepository() ).execute() .get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
 
         URIish remoteUri = cloned.remoteList().call().get( 0 ).getURIs().get( 0 );
         String remoteUrl = remoteUri.getScheme() + "://" + remoteUri.getHost() + remoteUri.getPath();
         assertThat( remoteUrl ).isEqualTo( ORIGIN );
-
     }
 
     @Test
@@ -98,7 +94,7 @@ public class JGitMirrorTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File directory = new File( parentFolder, TARGET_GIT );
         try {
-            new Mirror( directory, ORIGIN + "sssss", CredentialsProvider.getDefault() ).execute();
+            new Clone( directory, ORIGIN + "sssss", false, CredentialsProvider.getDefault() ).execute();
             fail( "If got here the test is wrong because the ORIGIN does no exist" );
         } catch ( RuntimeException ex ) {
             assertThat( ex ).isNotNull();

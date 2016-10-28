@@ -22,20 +22,22 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.file.FileSystemAlreadyExistsException;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
+import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
+import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.Fork;
+import org.uberfire.java.nio.fs.jgit.util.commands.ListRefs;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
-import static org.eclipse.jgit.api.ListBranchCommand.ListMode.*;
 import static org.fest.assertions.api.Assertions.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitForkTest extends AbstractTestInfra {
 
@@ -48,35 +50,32 @@ public class JGitForkTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "user_branch", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "user_branch", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2222" ) );
-        }} );
-        commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
+        }} ).execute();
+        new Commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
-        }} );
-        commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
+        }} ).execute();
+        new Commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file3.txt", tempFile( "temp3" ) );
-        }} );
+        }} ).execute();
 
         new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
 
         final File gitCloned = new File( parentFolder, TARGET_GIT + ".git" );
-        final Git cloned = Git.open( gitCloned );
+        final Git cloned = Git.createRepository( gitCloned );
 
         assertThat( cloned ).isNotNull();
 
-        assertThat( branchList( cloned, ALL ) ).hasSize( 4 );
+        assertThat( new ListRefs( cloned.getRepository() ).execute() ).hasSize( 2 );
 
-        assertThat( branchList( cloned, ALL ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
-        assertThat( branchList( cloned, ALL ).get( 1 ).getName() ).isEqualTo( "refs/heads/user_branch" );
-        assertThat( branchList( cloned, ALL ).get( 2 ).getName() ).isEqualTo( "refs/remotes/origin/master" );
-        assertThat( branchList( cloned, ALL ).get( 3 ).getName() ).isEqualTo( "refs/remotes/origin/user_branch" );
+        assertThat( new ListRefs( cloned.getRepository() ).execute().get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
+        assertThat( new ListRefs( cloned.getRepository() ).execute().get( 1 ).getName() ).isEqualTo( "refs/heads/user_branch" );
 
-        final String remotePath = cloned.remoteList().call().get( 0 ).getURIs().get( 0 ).getPath();
-        assertThat( remotePath ).isEqualTo( gitSource.getPath() );
-
+        final String remotePath = ( (GitImpl) cloned )._remoteList().call().get( 0 ).getURIs().get( 0 ).getPath();
+        assertThat( remotePath ).isEqualTo( gitSource.getPath() + "/" );
     }
 
     @Test(expected = GitException.class)
@@ -84,21 +83,20 @@ public class JGitForkTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
-        }} );
+        }} ).execute();
 
         final File gitTarget = new File( parentFolder, TARGET_GIT + ".git" );
-        final Git originTarget = JGitUtil.newRepository( gitTarget, true );
+        final Git originTarget = new CreateRepository( gitTarget ).execute().get();
 
-        commit( originTarget, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
+        new Commit( originTarget, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
-        }} );
+        }} ).execute();
 
         new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
-
     }
 
     @Test
@@ -108,7 +106,7 @@ public class JGitForkTest extends AbstractTestInfra {
         try {
             new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
             fail( "If got here is because it could for the repository" );
-        } catch ( GitException e ) {
+        } catch ( InvalidRemoteException e ) {
             assertThat( e ).isNotNull();
             logger.info( e.getMessage(), e );
         }
@@ -131,15 +129,13 @@ public class JGitForkTest extends AbstractTestInfra {
 
         final Map<String, ?> forkEnv = new HashMap<String, Object>() {{
             put( JGitFileSystemProvider.GIT_ENV_KEY_DEFAULT_REMOTE_NAME, SOURCE );
-            put( "listMode", "ALL" );
         }};
         String forkPath = "git://" + TARGET;
         final URI forkUri = URI.create( forkPath );
         final JGitFileSystem fs = (JGitFileSystem) provider.newFileSystem( forkUri, forkEnv );
 
-        assertThat( fs.gitRepo().remoteList().call().get( 0 ).getURIs().get( 0 ).toString() )
-                .isEqualTo( new File( provider.getGitRepoContainerDir(), SOURCE + ".git" ).getAbsolutePath() );
-
+        assertThat( ( (GitImpl) fs.getGit() )._remoteList().call().get( 0 ).getURIs().get( 0 ).toString() )
+                .isEqualTo( new File( provider.getGitRepoContainerDir(), SOURCE + ".git" ).toPath().toUri().toString() );
     }
 
     @Test(expected = FileSystemAlreadyExistsException.class)
@@ -158,14 +154,12 @@ public class JGitForkTest extends AbstractTestInfra {
 
         final Map<String, ?> forkEnv = new HashMap<String, Object>() {{
             put( JGitFileSystemProvider.GIT_ENV_KEY_DEFAULT_REMOTE_NAME, SOURCE );
-            put( "listMode", "ALL" );
         }};
 
         String forkPath = "git://" + TARGET;
         final URI forkUri = URI.create( forkPath );
         provider.newFileSystem( forkUri, forkEnv );
         provider.newFileSystem( forkUri, forkEnv );
-
     }
 
 }
