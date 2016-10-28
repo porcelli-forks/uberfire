@@ -167,51 +167,46 @@ public class JGitFileSystem implements FileSystem,
     @Override
     public Iterable<Path> getRootDirectories() {
         checkClosed();
-        return new Iterable<Path>() {
+        return () -> new Iterator<Path>() {
+
+            Iterator<Ref> branches = null;
+
             @Override
-            public Iterator<Path> iterator() {
-                return new Iterator<Path>() {
+            public boolean hasNext() {
+                if ( branches == null ) {
+                    init();
+                }
+                return branches.hasNext();
+            }
 
-                    Iterator<Ref> branches = null;
+            private void init() {
+                branches = branchList( gitRepo, listMode ).iterator();
+            }
 
-                    @Override
-                    public boolean hasNext() {
-                        if ( branches == null ) {
-                            init();
-                        }
-                        return branches.hasNext();
-                    }
+            @Override
+            public Path next() {
 
-                    private void init() {
-                        branches = branchList( gitRepo, listMode ).iterator();
-                    }
+                if ( branches == null ) {
+                    init();
+                }
+                try {
+                    return JGitPathImpl.createRoot( JGitFileSystem.this, "/",
+                                                    shortenRefName( branches.next().getName() ) + "@" + name,
+                                                    false );
+                } catch ( NoSuchElementException e ) {
+                    throw new IllegalStateException(
+                            "The gitnio directory is in an invalid state. " +
+                                    "If you are an IntelliJ IDEA user, " +
+                                    "there is a known bug which requires specifying " +
+                                    "a custom directory for your git repository. " +
+                                    "You can specify a custom directory using '-Dorg.uberfire.nio.git.dir=/tmp/dir'. " +
+                                    "For more details please see https://issues.jboss.org/browse/UF-275.", e );
+                }
+            }
 
-                    @Override
-                    public Path next() {
-
-                        if ( branches == null ) {
-                            init();
-                        }
-                        try {
-                            return JGitPathImpl.createRoot( JGitFileSystem.this, "/",
-                                                            shortenRefName( branches.next().getName() ) + "@" + name,
-                                                            false );
-                        } catch ( NoSuchElementException e ) {
-                            throw new IllegalStateException(
-                                    "The gitnio directory is in an invalid state. " +
-                                            "If you are an IntelliJ IDEA user, " +
-                                            "there is a known bug which requires specifying " +
-                                            "a custom directory for your git repository. " +
-                                            "You can specify a custom directory using '-Dorg.uberfire.nio.git.dir=/tmp/dir'. " +
-                                            "For more details please see https://issues.jboss.org/browse/UF-275.", e );
-                        }
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-                };
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
             }
         };
     }
@@ -219,33 +214,28 @@ public class JGitFileSystem implements FileSystem,
     @Override
     public Iterable<FileStore> getFileStores() {
         checkClosed();
-        return new Iterable<FileStore>() {
+        return () -> new Iterator<FileStore>() {
+
+            private int i = 0;
+
             @Override
-            public Iterator<FileStore> iterator() {
-                return new Iterator<FileStore>() {
+            public boolean hasNext() {
+                return i < 1;
+            }
 
-                    private int i = 0;
+            @Override
+            public FileStore next() {
+                if ( i < 1 ) {
+                    i++;
+                    return fileStore;
+                } else {
+                    throw new NoSuchElementException();
+                }
+            }
 
-                    @Override
-                    public boolean hasNext() {
-                        return i < 1;
-                    }
-
-                    @Override
-                    public FileStore next() {
-                        if ( i < 1 ) {
-                            i++;
-                            return fileStore;
-                        } else {
-                            throw new NoSuchElementException();
-                        }
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-                };
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
             }
         };
     }
@@ -349,7 +339,7 @@ public class JGitFileSystem implements FileSystem,
                         '}';
             }
         };
-        events.put( ws, new ConcurrentLinkedQueue<WatchKey>() );
+        events.put( ws, new ConcurrentLinkedQueue<>() );
         watchServices.add( ws );
         return ws;
     }
@@ -363,7 +353,7 @@ public class JGitFileSystem implements FileSystem,
         isClosed = true;
         try {
 
-            for ( final WatchService ws : new ArrayList<WatchService>( watchServices ) ) {
+            for ( final WatchService ws : new ArrayList<>( watchServices ) ) {
                 try {
                     ws.close();
                 } catch ( final Exception ex ) {
