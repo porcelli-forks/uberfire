@@ -245,15 +245,15 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
 
         final RevCommit commit = getLastCommit( git, "master" );
         try {
-            assertNotNull( getCommits( git, "master", null, commit ) );
-            assertNotNull( getCommits( git, "master", null, commit ) );
-            assertNotNull( getCommits( git, "master", null, commit ) );
+            assertNotNull( getCommits( git, null, commit ) );
+            assertNotNull( getCommits( git, null, commit ) );
+            assertNotNull( getCommits( git, null, commit ) );
         } catch ( Exception ex ) {
             fail();
         }
 
         try {
-            assertNotNull( getCommits( git, "master", null, commit ) );
+            assertNotNull( getCommits( git, null, commit ) );
             fail( "forced to fail!" );
         } catch ( RuntimeException ex ) {
         }

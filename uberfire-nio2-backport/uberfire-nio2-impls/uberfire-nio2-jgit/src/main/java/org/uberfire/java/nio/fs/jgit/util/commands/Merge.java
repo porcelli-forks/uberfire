@@ -71,7 +71,7 @@ public class Merge extends GitCommand {
 
         final RevCommit commonAncestor = JGitUtil.getCommonAncestor( git, lastSourceCommit, lastTargetCommit );
 
-        final List<RevCommit> commits = JGitUtil.getCommits( git, sourceBranch, commonAncestor, lastSourceCommit );
+        final List<RevCommit> commits = JGitUtil.getCommits( git, commonAncestor, lastSourceCommit );
         Collections.reverse( commits );
         final String[] commitsIDs = commits.stream().map( elem -> elem.getName() ).toArray( String[]::new );
 
