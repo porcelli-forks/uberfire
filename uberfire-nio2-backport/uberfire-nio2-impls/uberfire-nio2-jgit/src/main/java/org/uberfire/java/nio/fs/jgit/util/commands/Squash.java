@@ -155,7 +155,7 @@ public class Squash extends GitCommand {
                                            Map<String, ObjectId> content,
                                            ObjectInserter odi ) {
         try {
-            DirCache index = JGitUtil.createTemporaryIndexForContent( git, content );
+            DirCache index = JGitUtil.createTemporaryIndexForContent( content );
             return index.writeTree( odi );
         } catch ( IOException e ) {
             String message = "Cannot create temporary index form content";

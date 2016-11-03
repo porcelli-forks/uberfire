@@ -177,15 +177,6 @@ public final class JGitUtil {
         return git;
     }
 
-    public static List<Ref> branchList( final Git git ) {
-        checkNotNull( "git", git );
-        try {
-            return git.branchList().call();
-        } catch ( final GitAPIException e ) {
-            throw new RuntimeException( e );
-        }
-    }
-
     public static InputStream resolveInputStream( final Git git,
                                                   final String treeRef,
                                                   final String path ) {
@@ -334,8 +325,8 @@ public final class JGitUtil {
 
                 final List<Ref> branches = git.branchList().setListMode( ListBranchCommand.ListMode.ALL ).call();
 
-                final Set<String> remoteBranches = new HashSet<String>();
-                final Set<String> localBranches = new HashSet<String>();
+                final Set<String> remoteBranches = new HashSet<>();
+                final Set<String> localBranches = new HashSet<>();
 
                 for ( final Ref branch : branches ) {
                     final String branchName = branch.getName().substring( branch.getName().lastIndexOf( "/" ) + 1 );
@@ -484,19 +475,49 @@ public final class JGitUtil {
 
     public static ObjectId getTreeRefObjectId( final Repository repo,
                                                final String treeRef ) {
-        final Ref ref = getBranch( repo, treeRef );
-        if ( ref == null ) {
-            return null;
-        }
         try ( RevWalk walk = new RevWalk( repo ) ) {
-            final RevCommit commit = walk.parseCommit( ref.getObjectId() );
-
-            // a commit points to a tree
+            final RevCommit commit = getLastCommit( repo, walk, treeRef );
+            if ( commit == null ) {
+                return null;
+            }
             final RevTree tree = walk.parseTree( commit.getTree().getId() );
-            walk.dispose();
             return tree.getId();
         } catch ( java.io.IOException ex ) {
             throw new RuntimeException( ex );
+        }
+    }
+
+    public static RevCommit getLastCommit( final Git git,
+                                           final String branchName ) {
+        return retryIfNeeded( RuntimeException.class, () -> {
+
+            try ( final RevWalk walk = new RevWalk( git.getRepository() ) ) {
+                return getLastCommit( git.getRepository(), walk, branchName );
+            }
+        } );
+    }
+
+    private static RevCommit getLastCommit( final Repository repo,
+                                            final RevWalk walk,
+                                            final String branchName ) throws java.io.IOException {
+        try {
+            final Ref ref = getBranch( repo, branchName );
+            if ( ref == null ) {
+                return null;
+            }
+            return walk.parseCommit( ref.getObjectId() );
+        } catch ( final Exception ex ) {
+            throw ex;
+        }
+
+    }
+
+    public static List<Ref> branchList( final Git git ) {
+        checkNotNull( "git", git );
+        try {
+            return new ArrayList<>( git.getRepository().getRefDatabase().getRefs( "refs/heads/" ).values() );
+        } catch ( java.io.IOException e ) {
+            throw new RuntimeException( e );
         }
     }
 
@@ -531,13 +552,12 @@ public final class JGitUtil {
         }
     }
 
-    public static List<RevCommit> getCommits( final Git repo,
-                                              final String branch,
+    public static List<RevCommit> getCommits( final Git git,
                                               final ObjectId startRange,
                                               final ObjectId endRange ) {
         return retryIfNeeded( RuntimeException.class, () -> {
             final List<RevCommit> list = new ArrayList<>();
-            try ( final RevWalk rw = new RevWalk( repo.getRepository() ) ) {
+            try ( final RevWalk rw = new RevWalk( git.getRepository() ) ) {
                 // resolve branch
                 rw.markStart( rw.parseCommit( endRange ) );
                 if ( startRange != null ) {
@@ -690,8 +710,7 @@ public final class JGitUtil {
         return new PersonIdent( git.getRepository() );
     }
 
-    public static DirCache createTemporaryIndexForContent( final Git git,
-                                                           final Map<String, ObjectId> content ) {
+    public static DirCache createTemporaryIndexForContent( final Map<String, ObjectId> content ) {
 
         final DirCacheEditor editor = DirCache.newInCore().editor();
 
@@ -1212,24 +1231,6 @@ public final class JGitUtil {
         checkNotEmpty( "branchName", branchName );
 
         return getBranch( git.getRepository(), branchName ) != null;
-    }
-
-    public static RevCommit getLastCommit( final Git git,
-                                           final String branchName ) {
-
-        return retryIfNeeded( RuntimeException.class, () -> {
-            try ( final RevWalk walk = new RevWalk( git.getRepository() ) ) {
-                final ObjectId branch = getBranch( git.getRepository(), branchName ).getObjectId();
-                if ( branch == null ) {
-                    return null;
-                }
-                final RevCommit head = walk.parseCommit( branch );
-                walk.markStart( head );
-                return walk.next();
-            } catch ( final Exception ex ) {
-                throw ex;
-            }
-        } );
     }
 
     public static RevCommit getCommonAncestor( Git git,

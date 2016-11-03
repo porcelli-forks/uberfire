@@ -256,7 +256,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
             fail( e.getMessage() );
         }
 
-        assertFalse( ((AtomicBoolean) isLocked).get() );
+        assertFalse( ( (AtomicBoolean) isLocked ).get() );
 
     }
 
@@ -380,7 +380,6 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
         List<RevCommit> commits = new ArrayList<>();
         final ObjectId id = resolveObjectId( origin, branch );
         for ( RevCommit commit : origin.log().add( id ).call() ) {
-//            logger.info( ">>> " + branch + " Commits: " + commit.getFullMessage() + " - " + commit.toString() );
             commits.add( commit );
         }
         return commits;

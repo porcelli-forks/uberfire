@@ -160,7 +160,6 @@ public class JGitForkTest extends AbstractTestInfra {
         final URI forkUri = URI.create( forkPath );
         provider.newFileSystem( forkUri, forkEnv );
         provider.newFileSystem( forkUri, forkEnv );
-
     }
 
 }
