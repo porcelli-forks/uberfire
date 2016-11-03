@@ -64,6 +64,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryCache;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -178,15 +179,9 @@ public final class JGitUtil {
 
     public static List<Ref> branchList( final Git git ) {
         checkNotNull( "git", git );
-        return branchList( git, null );
-    }
-
-    public static List<Ref> branchList( final Git git,
-                                        final ListBranchCommand.ListMode listMode ) {
-        checkNotNull( "git", git );
         try {
-            return git.branchList().setListMode( listMode ).call();
-        } catch ( GitAPIException e ) {
+            return git.branchList().call();
+        } catch ( final GitAPIException e ) {
             throw new RuntimeException( e );
         }
     }
@@ -202,7 +197,7 @@ public final class JGitUtil {
 
         return retryIfNeeded( NoSuchFileException.class, () -> {
             try ( final TreeWalk tw = new TreeWalk( git.getRepository() ) ) {
-                final ObjectId tree = git.getRepository().resolve( treeRef + "^{tree}" );
+                final ObjectId tree = getTreeRefObjectId( git.getRepository(), treeRef );
                 tw.setFilter( PathFilter.create( gitPath ) );
                 tw.reset( tree );
                 while ( tw.next() ) {
@@ -428,16 +423,14 @@ public final class JGitUtil {
 
         RevCommit newHead = null;
 
-        final RevWalk revWalk = new RevWalk( repo );
-
         final ObjectId[] commits = resolveObjectIds( git, _commits );
 
         if ( _commits.length != commits.length ) {
             throw new IOException( "Couldn't resolve some commits." );
         }
 
-        try {
-            final Ref headRef = getBranch( git, targetBranch );
+        try ( final RevWalk revWalk = new RevWalk( repo ) ) {
+            final Ref headRef = getBranch( git.getRepository(), targetBranch );
             newHead = revWalk.parseCommit( headRef.getObjectId() );
 
             // loop through all refs to be cherry-picked
@@ -486,18 +479,36 @@ public final class JGitUtil {
                             e ), e ) );
         } catch ( final Exception e ) {
             throw new IOException( e );
-        } finally {
-            revWalk.close();
         }
     }
 
     public static ObjectId getTreeRefObjectId( final Repository repo,
                                                final String treeRef ) {
-        try {
-            return repo.resolve( treeRef + "^{tree}" );
+        final Ref ref = getBranch( repo, treeRef );
+        if ( ref == null ) {
+            return null;
+        }
+        try ( RevWalk walk = new RevWalk( repo ) ) {
+            final RevCommit commit = walk.parseCommit( ref.getObjectId() );
+
+            // a commit points to a tree
+            final RevTree tree = walk.parseTree( commit.getTree().getId() );
+            walk.dispose();
+            return tree.getId();
         } catch ( java.io.IOException ex ) {
             throw new RuntimeException( ex );
         }
+    }
+
+    public static Ref getBranch( final Repository repo,
+                                 final String name ) {
+
+        try {
+            return repo.getRefDatabase().getRef( name );
+        } catch ( java.io.IOException e ) {
+        }
+
+        return null;
     }
 
     public static List<DiffEntry> getDiff( final Repository repo,
@@ -575,83 +586,78 @@ public final class JGitUtil {
         boolean hadEffecitiveCommit = true;
         final PersonIdent author = buildPersonIdent( git, commitInfo.getName(), commitInfo.getEmail(), commitInfo.getTimeZone(), commitInfo.getWhen() );
 
-        try {
-            final ObjectInserter odi = git.getRepository().newObjectInserter();
-            try {
-                final ObjectId headId = git.getRepository().resolve( branchName + "^{commit}" );
+        try ( final ObjectInserter odi = git.getRepository().newObjectInserter() ) {
+            final ObjectId headId = git.getRepository().resolve( branchName + "^{commit}" );
 
-                final ObjectId originId;
-                if ( _originId == null ) {
-                    originId = git.getRepository().resolve( branchName + "^{commit}" );
-                } else {
-                    originId = _originId;
-                }
+            final ObjectId originId;
+            if ( _originId == null ) {
+                originId = git.getRepository().resolve( branchName + "^{commit}" );
+            } else {
+                originId = _originId;
+            }
 
-                final DirCache index;
-                if ( content instanceof DefaultCommitContent ) {
-                    index = createTemporaryIndex( git, originId, odi, (DefaultCommitContent) content );
-                } else if ( content instanceof MoveCommitContent ) {
-                    index = createTemporaryIndex( git, originId, (MoveCommitContent) content );
-                } else if ( content instanceof CopyCommitContent ) {
-                    index = createTemporaryIndex( git, originId, (CopyCommitContent) content );
-                } else if ( content instanceof RevertCommitContent ) {
-                    index = createTemporaryIndex( git, originId );
-                } else {
-                    index = null;
-                }
+            final DirCache index;
+            if ( content instanceof DefaultCommitContent ) {
+                index = createTemporaryIndex( git, originId, odi, (DefaultCommitContent) content );
+            } else if ( content instanceof MoveCommitContent ) {
+                index = createTemporaryIndex( git, originId, (MoveCommitContent) content );
+            } else if ( content instanceof CopyCommitContent ) {
+                index = createTemporaryIndex( git, originId, (CopyCommitContent) content );
+            } else if ( content instanceof RevertCommitContent ) {
+                index = createTemporaryIndex( git, originId );
+            } else {
+                index = null;
+            }
 
-                if ( index != null ) {
-                    final ObjectId indexTreeId = index.writeTree( odi );
+            if ( index != null ) {
+                final ObjectId indexTreeId = index.writeTree( odi );
 
-                    final CommitBuilder commit = new CommitBuilder();
-                    commit.setAuthor( author );
-                    commit.setCommitter( author );
-                    commit.setEncoding( Constants.CHARACTER_ENCODING );
-                    commit.setMessage( commitInfo.getMessage() );
-                    if ( headId != null ) {
-                        if ( amend ) {
-                            final List<ObjectId> parents = new LinkedList<>();
-                            final RevCommit previousCommit = resolveRevCommit( git.getRepository(), headId );
-                            final RevCommit[] p = previousCommit.getParents();
-                            for ( final RevCommit revCommit : p ) {
-                                parents.add( 0, revCommit.getId() );
-                            }
-                            commit.setParentIds( parents );
-                        } else {
-                            commit.setParentId( headId );
+                final CommitBuilder commit = new CommitBuilder();
+                commit.setAuthor( author );
+                commit.setCommitter( author );
+                commit.setEncoding( Constants.CHARACTER_ENCODING );
+                commit.setMessage( commitInfo.getMessage() );
+                if ( headId != null ) {
+                    if ( amend ) {
+                        final List<ObjectId> parents = new LinkedList<>();
+                        final RevCommit previousCommit = resolveRevCommit( git.getRepository(), headId );
+                        final RevCommit[] p = previousCommit.getParents();
+                        for ( final RevCommit revCommit : p ) {
+                            parents.add( 0, revCommit.getId() );
                         }
-                    }
-                    commit.setTreeId( indexTreeId );
-
-                    final ObjectId commitId = odi.insert( commit );
-                    odi.flush();
-
-                    final RevCommit revCommit = resolveRevCommit( git.getRepository(), commitId );
-                    final RefUpdate ru = git.getRepository().updateRef( Constants.R_HEADS + branchName );
-                    if ( headId == null ) {
-                        ru.setExpectedOldObjectId( ObjectId.zeroId() );
+                        commit.setParentIds( parents );
                     } else {
-                        ru.setExpectedOldObjectId( headId );
+                        commit.setParentId( headId );
                     }
-                    ru.setNewObjectId( commitId );
-                    ru.setRefLogMessage( "commit: " + revCommit.getShortMessage(), false );
-                    final RefUpdate.Result rc = ru.forceUpdate();
-                    switch ( rc ) {
-                        case NEW:
-                        case FORCED:
-                        case FAST_FORWARD:
-                            break;
-                        case REJECTED:
-                        case LOCK_FAILURE:
-                            throw new ConcurrentRefUpdateException( JGitText.get().couldNotLockHEAD, ru.getRef(), rc );
-                        default:
-                            throw new JGitInternalException( MessageFormat.format( JGitText.get().updatingRefFailed, Constants.HEAD, commitId.toString(), rc ) );
-                    }
-                } else {
-                    hadEffecitiveCommit = false;
                 }
-            } finally {
-                odi.close();
+                commit.setTreeId( indexTreeId );
+
+                final ObjectId commitId = odi.insert( commit );
+                odi.flush();
+
+                final RevCommit revCommit = resolveRevCommit( git.getRepository(), commitId );
+                final RefUpdate ru = git.getRepository().updateRef( Constants.R_HEADS + branchName );
+                if ( headId == null ) {
+                    ru.setExpectedOldObjectId( ObjectId.zeroId() );
+                } else {
+                    ru.setExpectedOldObjectId( headId );
+                }
+                ru.setNewObjectId( commitId );
+                ru.setRefLogMessage( "commit: " + revCommit.getShortMessage(), false );
+                final RefUpdate.Result rc = ru.forceUpdate();
+                switch ( rc ) {
+                    case NEW:
+                    case FORCED:
+                    case FAST_FORWARD:
+                        break;
+                    case REJECTED:
+                    case LOCK_FAILURE:
+                        throw new ConcurrentRefUpdateException( JGitText.get().couldNotLockHEAD, ru.getRef(), rc );
+                    default:
+                        throw new JGitInternalException( MessageFormat.format( JGitText.get().updatingRefFailed, Constants.HEAD, commitId.toString(), rc ) );
+                }
+            } else {
+                hadEffecitiveCommit = false;
             }
         } catch ( final Throwable t ) {
             throw new RuntimeException( t );
@@ -748,8 +754,6 @@ public final class JGitUtil {
             editor.finish();
         } catch ( Exception e ) {
             throw new RuntimeException( e );
-        } finally {
-            inserter.close();
         }
 
         if ( path2delete.isEmpty() && paths.isEmpty() ) {
@@ -774,7 +778,6 @@ public final class JGitUtil {
 
                     consumer.accept( walkPath, hTree );
                 }
-                treeWalk.close();
             } catch ( final Exception ex ) {
                 throw new RuntimeException( ex );
             }
@@ -791,7 +794,7 @@ public final class JGitUtil {
                 if ( i < ( JGIT_RETRY_TIMES - 1 ) ) {
                     try {
                         Thread.sleep( JGIT_RETRY_SLEEP_TIME );
-                    } catch ( InterruptedException e ) {
+                    } catch ( final InterruptedException ignored ) {
                     }
                     LOG.debug( String.format( "Unexpected exception (%d/%d).", i + 1, JGIT_RETRY_TIMES ), ex );
                 } else {
@@ -934,7 +937,7 @@ public final class JGitUtil {
         final Collection<ObjectId> result = new ArrayList<>();
         for ( final String id : ids ) {
             try {
-                final Ref refName = getBranch( git, id );
+                final Ref refName = getBranch( git.getRepository(), id );
                 if ( refName != null ) {
                     result.add( refName.getObjectId() );
                     continue;
@@ -952,17 +955,6 @@ public final class JGitUtil {
         }
 
         return result.toArray( new ObjectId[ result.size() ] );
-    }
-
-    public static Ref getBranch( final Git git,
-                                 final String name ) {
-
-        try {
-            return git.getRepository().getRefDatabase().getRef( name );
-        } catch ( java.io.IOException e ) {
-        }
-
-        return null;
     }
 
     public static void deleteBranch( final Git git,
@@ -1219,7 +1211,7 @@ public final class JGitUtil {
         checkNotNull( "git", git );
         checkNotEmpty( "branchName", branchName );
 
-        return getBranch( git, branchName ) != null;
+        return getBranch( git.getRepository(), branchName ) != null;
     }
 
     public static RevCommit getLastCommit( final Git git,
@@ -1227,7 +1219,7 @@ public final class JGitUtil {
 
         return retryIfNeeded( RuntimeException.class, () -> {
             try ( final RevWalk walk = new RevWalk( git.getRepository() ) ) {
-                final ObjectId branch = git.getRepository().resolve( branchName );
+                final ObjectId branch = getBranch( git.getRepository(), branchName ).getObjectId();
                 if ( branch == null ) {
                     return null;
                 }
@@ -1284,7 +1276,7 @@ public final class JGitUtil {
         }
 
         return retryIfNeeded( RuntimeException.class, () -> {
-            final ObjectId tree = git.getRepository().resolve( branchName + "^{tree}" );
+            final ObjectId tree = getTreeRefObjectId( git.getRepository(), branchName );
             if ( tree == null ) {
                 return newPair( PathType.NOT_FOUND, null );
             }
@@ -1327,7 +1319,7 @@ public final class JGitUtil {
 
         return retryIfNeeded( RuntimeException.class, () -> {
             try ( final TreeWalk tw = new TreeWalk( git.getRepository() ) ) {
-                final ObjectId tree = git.getRepository().resolve( branchName + "^{tree}" );
+                final ObjectId tree = getTreeRefObjectId( git.getRepository(), branchName );
                 tw.setFilter( PathFilter.create( gitPath ) );
                 tw.reset( tree );
                 while ( tw.next() ) {
@@ -1361,7 +1353,7 @@ public final class JGitUtil {
 
         return retryIfNeeded( RuntimeException.class, () -> {
             final List<JGitPathInfo> result = new ArrayList<>();
-            final ObjectId tree = git.getRepository().resolve( branchName + "^{tree}" );
+            final ObjectId tree = getTreeRefObjectId( git.getRepository(), branchName );
             if ( tree == null ) {
                 return result;
             }

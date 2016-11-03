@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.fs.jgit.util.commands.Mirror;
 
-import static org.eclipse.jgit.api.ListBranchCommand.ListMode.*;
 import static org.fest.assertions.api.Assertions.*;
 import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
@@ -51,15 +50,14 @@ public class JGitMirrorTest extends AbstractTestInfra {
 
         assertThat( cloned ).isNotNull();
 
-        assertThat( branchList( cloned, ALL ) ).is( new Condition<List<Ref>>() {
+        assertThat( branchList( cloned ) ).is( new Condition<List<Ref>>() {
             @Override
             public boolean matches( final List<Ref> refs ) {
                 return refs.size() > 0;
             }
         } );
 
-        assertThat( branchList( cloned, ALL ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
-        assertThat( branchList( cloned, ALL ).get( 2 ).getName() ).isEqualTo( "refs/remotes/origin/master" );
+        assertThat( branchList( cloned ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
 
         URIish remoteUri = cloned.remoteList().call().get( 0 ).getURIs().get( 0 );
         String remoteUrl = remoteUri.getScheme() + "://" + remoteUri.getHost() + remoteUri.getPath();
@@ -77,20 +75,18 @@ public class JGitMirrorTest extends AbstractTestInfra {
 
         assertThat( cloned ).isNotNull();
 
-        assertThat( branchList( cloned, ALL ) ).is( new Condition<List<Ref>>() {
+        assertThat( branchList( cloned ) ).is( new Condition<List<Ref>>() {
             @Override
             public boolean matches( final List<Ref> refs ) {
                 return refs.size() > 0;
             }
         } );
 
-        assertThat( branchList( cloned, ALL ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
-        assertThat( branchList( cloned, ALL ).get( 2 ).getName() ).isEqualTo( "refs/remotes/origin/master" );
+        assertThat( branchList( cloned ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
 
         URIish remoteUri = cloned.remoteList().call().get( 0 ).getURIs().get( 0 );
         String remoteUrl = remoteUri.getScheme() + "://" + remoteUri.getHost() + remoteUri.getPath();
         assertThat( remoteUrl ).isEqualTo( ORIGIN );
-
     }
 
     @Test

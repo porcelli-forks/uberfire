@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -173,9 +174,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final URI originRepo = URI.create( "git://my-simple-test-origin-name" );
 
-        final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, new HashMap<String, Object>() {{
-            put( "listMode", "ALL" );
-        }} );
+        final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
         commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
@@ -185,14 +184,13 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final Map<String, Object> env = new HashMap<String, Object>() {{
             put( JGitFileSystemProvider.GIT_ENV_KEY_DEFAULT_REMOTE_NAME, "git://localhost:" + gitDaemonPort + "/my-simple-test-origin-name" );
-            put( "listMode", "ALL" );
         }};
 
         final FileSystem fs = provider.newFileSystem( newRepo, env );
 
         assertThat( fs ).isNotNull();
 
-        assertThat( fs.getRootDirectories() ).hasSize( 2 );
+        assertThat( fs.getRootDirectories() ).hasSize( 1 );
 
         assertThat( fs.getPath( "file.txt" ).toFile() ).isNotNull().exists();
 
@@ -204,7 +202,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         assertThat( fs ).isNotNull();
 
-        assertThat( fs.getRootDirectories() ).hasSize( 3 );
+        assertThat( fs.getRootDirectories() ).hasSize( 1 );
 
         for ( final Path root : fs.getRootDirectories() ) {
             if ( root.toAbsolutePath().toUri().toString().contains( "upstream" ) ) {
@@ -222,17 +220,9 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         provider.getFileSystem( URI.create( "git://my-repo-name?sync=git://localhost:" + gitDaemonPort + "/my-simple-test-origin-name&force" ) );
 
-        assertThat( fs.getRootDirectories() ).hasSize( 3 );
+        assertThat( fs.getRootDirectories() ).hasSize( 1 );
 
-        for ( final Path root : fs.getRootDirectories() ) {
-            if ( root.toAbsolutePath().toUri().toString().contains( "upstream" ) ) {
-                assertThat( provider.newDirectoryStream( root, null ) ).isNotEmpty().hasSize( 3 );
-            } else if ( root.toAbsolutePath().toUri().toString().contains( "origin" ) ) {
-                assertThat( provider.newDirectoryStream( root, null ) ).isNotEmpty().hasSize( 1 );
-            } else {
-                assertThat( provider.newDirectoryStream( root, null ) ).isNotEmpty().hasSize( 3 );
-            }
-        }
+        assertThat( provider.newDirectoryStream( fs.getRootDirectories().iterator().next(), null ) ).isNotEmpty().hasSize( 3 );
     }
 
     @Test
@@ -240,9 +230,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final URI originRepo = URI.create( "git://my-simple-test-origin-repo" );
 
-        final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, new HashMap<String, Object>() {{
-            put( "listMode", "ALL" );
-        }} );
+        final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
         commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
@@ -252,14 +240,13 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final Map<String, Object> env = new HashMap<String, Object>() {{
             put( JGitFileSystemProvider.GIT_ENV_KEY_DEFAULT_REMOTE_NAME, "git://localhost:" + gitDaemonPort + "/my-simple-test-origin-repo" );
-            put( "listMode", "ALL" );
         }};
 
         final FileSystem fs = provider.newFileSystem( newRepo, env );
 
         assertThat( fs ).isNotNull();
 
-        assertThat( fs.getRootDirectories() ).hasSize( 2 );
+        assertThat( fs.getRootDirectories() ).hasSize( 1 );
 
         assertThat( fs.getPath( "file.txt" ).toFile() ).isNotNull().exists();
 
@@ -271,7 +258,6 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final Map<String, Object> env2 = new HashMap<String, Object>() {{
             put( JGitFileSystemProvider.GIT_ENV_KEY_DEFAULT_REMOTE_NAME, "git://localhost:" + gitDaemonPort + "/my-simple-test-origin-repo" );
-            put( "listMode", "ALL" );
         }};
 
         final FileSystem fs2 = provider.newFileSystem( newRepo2, env2 );
@@ -282,24 +268,17 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         provider.getFileSystem( URI.create( "git://my-repo2?sync=git://localhost:" + gitDaemonPort + "/my-simple-test-origin-repo&force" ) );
 
-        assertThat( fs2.getRootDirectories() ).hasSize( 5 );
+        assertThat( fs2.getRootDirectories() ).hasSize( 2 );
 
         final List<String> rootURIs1 = new ArrayList<String>() {{
             add( "git://master@my-repo2/" );
             add( "git://user-branch@my-repo2/" );
-            add( "git://origin/master@my-repo2/" );
-            add( "git://upstream/master@my-repo2/" );
-            add( "git://upstream/user-branch@my-repo2/" );
         }};
 
         final List<String> rootURIs2 = new ArrayList<String>() {{
             add( "git://master@my-repo2/" );
             add( "git://user-branch@my-repo2/" );
             add( "git://user-branch-2@my-repo2/" );
-            add( "git://origin/master@my-repo2/" );
-            add( "git://upstream/master@my-repo2/" );
-            add( "git://upstream/user-branch@my-repo2/" );
-            add( "git://upstream/user-branch-2@my-repo2/" );
         }};
 
         final Set<String> rootURIs = new HashSet<String>();
@@ -317,7 +296,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         provider.getFileSystem( URI.create( "git://my-repo2?sync=git://localhost:" + gitDaemonPort + "/my-simple-test-origin-repo&force" ) );
 
-        assertThat( fs2.getRootDirectories() ).hasSize( 7 );
+        assertThat( fs2.getRootDirectories() ).hasSize( 3 );
 
         for ( final Path root : fs2.getRootDirectories() ) {
             rootURIs.add( root.toUri().toString() );
@@ -333,9 +312,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final URI originRepo = URI.create( "git://my-simple-test-origin-name" );
 
-        final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, new HashMap<String, Object>() {{
-            put( "listMode", "ALL" );
-        }} );
+        final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
         commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );

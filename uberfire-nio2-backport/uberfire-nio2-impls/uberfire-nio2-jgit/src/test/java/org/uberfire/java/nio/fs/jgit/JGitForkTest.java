@@ -33,7 +33,6 @@ import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
 import org.uberfire.java.nio.fs.jgit.util.commands.Fork;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
-import static org.eclipse.jgit.api.ListBranchCommand.ListMode.*;
 import static org.fest.assertions.api.Assertions.*;
 import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
@@ -67,12 +66,10 @@ public class JGitForkTest extends AbstractTestInfra {
 
         assertThat( cloned ).isNotNull();
 
-        assertThat( branchList( cloned, ALL ) ).hasSize( 4 );
+        assertThat( branchList( cloned ) ).hasSize( 2 );
 
-        assertThat( branchList( cloned, ALL ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
-        assertThat( branchList( cloned, ALL ).get( 1 ).getName() ).isEqualTo( "refs/heads/user_branch" );
-        assertThat( branchList( cloned, ALL ).get( 2 ).getName() ).isEqualTo( "refs/remotes/origin/master" );
-        assertThat( branchList( cloned, ALL ).get( 3 ).getName() ).isEqualTo( "refs/remotes/origin/user_branch" );
+        assertThat( branchList( cloned ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
+        assertThat( branchList( cloned ).get( 1 ).getName() ).isEqualTo( "refs/heads/user_branch" );
 
         final String remotePath = cloned.remoteList().call().get( 0 ).getURIs().get( 0 ).getPath();
         assertThat( remotePath ).isEqualTo( gitSource.getPath() );
@@ -131,7 +128,6 @@ public class JGitForkTest extends AbstractTestInfra {
 
         final Map<String, ?> forkEnv = new HashMap<String, Object>() {{
             put( JGitFileSystemProvider.GIT_ENV_KEY_DEFAULT_REMOTE_NAME, SOURCE );
-            put( "listMode", "ALL" );
         }};
         String forkPath = "git://" + TARGET;
         final URI forkUri = URI.create( forkPath );
@@ -158,7 +154,6 @@ public class JGitForkTest extends AbstractTestInfra {
 
         final Map<String, ?> forkEnv = new HashMap<String, Object>() {{
             put( JGitFileSystemProvider.GIT_ENV_KEY_DEFAULT_REMOTE_NAME, SOURCE );
-            put( "listMode", "ALL" );
         }};
 
         String forkPath = "git://" + TARGET;

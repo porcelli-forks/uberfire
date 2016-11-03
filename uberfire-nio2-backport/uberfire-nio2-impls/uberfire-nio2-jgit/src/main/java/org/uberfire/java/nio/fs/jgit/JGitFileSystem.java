@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.slf4j.Logger;
@@ -75,7 +74,6 @@ public class JGitFileSystem implements FileSystem,
 
     private final JGitFileSystemProvider provider;
     private final Git gitRepo;
-    private final ListBranchCommand.ListMode listMode;
     private final String toStringContent;
     private boolean isClosed = false;
     private final FileStore fileStore;
@@ -96,20 +94,10 @@ public class JGitFileSystem implements FileSystem,
                     final Git git,
                     final String name,
                     final CredentialsProvider credential ) {
-        this( provider, fullHostNames, git, name, null, credential );
-    }
-
-    JGitFileSystem( final JGitFileSystemProvider provider,
-                    final Map<String, String> fullHostNames,
-                    final Git git,
-                    final String name,
-                    final ListBranchCommand.ListMode listMode,
-                    final CredentialsProvider credential ) {
         this.provider = checkNotNull( "provider", provider );
         this.gitRepo = checkNotNull( "git", git );
         this.name = checkNotEmpty( "name", name );
         this.credential = checkNotNull( "credential", credential );
-        this.listMode = listMode;
         this.fileStore = new JGitFileStore( gitRepo.getRepository() );
         if ( fullHostNames != null && !fullHostNames.isEmpty() ) {
             final StringBuilder sb = new StringBuilder();
@@ -180,7 +168,7 @@ public class JGitFileSystem implements FileSystem,
             }
 
             private void init() {
-                branches = branchList( gitRepo, listMode ).iterator();
+                branches = branchList( gitRepo ).iterator();
             }
 
             @Override
@@ -392,9 +380,6 @@ public class JGitFileSystem implements FileSystem,
         if ( !gitRepo.equals( that.gitRepo ) ) {
             return false;
         }
-        if ( listMode != that.listMode ) {
-            return false;
-        }
         if ( !name.equals( that.name ) ) {
             return false;
         }
@@ -414,7 +399,6 @@ public class JGitFileSystem implements FileSystem,
     public int hashCode() {
         int result = provider.hashCode();
         result = 31 * result + gitRepo.hashCode();
-        result = 31 * result + ( listMode != null ? listMode.hashCode() : 0 );
         result = 31 * result + ( fileStore != null ? fileStore.hashCode() : 0 );
         result = 31 * result + name.hashCode();
         return result;

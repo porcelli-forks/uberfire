@@ -40,7 +40,8 @@ import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.eclipse.jgit.util.io.NullOutputStream;
 
-import static org.eclipse.jgit.lib.Constants.HEAD;
+import static org.eclipse.jgit.lib.Constants.*;
+import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class CustomDiffCommand extends GitCommand<List<DiffEntry>> {
 
@@ -91,7 +92,7 @@ public class CustomDiffCommand extends GitCommand<List<DiffEntry>> {
         try {
             if ( cached ) {
                 if ( oldTree == null ) {
-                    ObjectId head = repo.resolve( HEAD + "^{tree}" ); //$NON-NLS-1$
+                    ObjectId head = getTreeRefObjectId( repo, HEAD );
                     if ( head == null ) {
                         throw new NoHeadException( JGitText.get().cannotReadTree );
                     }
