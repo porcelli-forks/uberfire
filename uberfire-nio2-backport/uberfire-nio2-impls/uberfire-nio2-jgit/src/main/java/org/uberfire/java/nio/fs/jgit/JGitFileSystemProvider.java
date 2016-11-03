@@ -52,7 +52,6 @@ import java.util.stream.Collectors;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UserInfo;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
@@ -69,8 +68,6 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.CredentialsProviderUserInfo;
 import org.eclipse.jgit.transport.JschConfigSessionFactory;
 import org.eclipse.jgit.transport.OpenSshConfig;
-import org.eclipse.jgit.transport.PostReceiveHook;
-import org.eclipse.jgit.transport.PreReceiveHook;
 import org.eclipse.jgit.transport.ReceiveCommand;
 import org.eclipse.jgit.transport.ReceivePack;
 import org.eclipse.jgit.transport.ServiceMayNotContinueException;
@@ -184,8 +181,6 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
      * Specifies the list mode for the repository parent directory. Must match one of the enum constants defined in
      * {@link ListMode}.
      */
-    public static final String GIT_ENV_KEY_LIST_MODE = "listMode";
-
     public static final String GIT_ENV_KEY_DEST_PATH = "out-dir";
     public static final String GIT_ENV_KEY_USER_NAME = "username";
     public static final String GIT_ENV_KEY_PASSWORD = "password";
@@ -500,13 +495,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 final File repoDir = new File( gitReposParentDir, repo.getK1() + repo.getK2() );
                 try {
                     if ( repoDir.isDirectory() ) {
-//                        final String name = repoDir.getName().substring( 0, repoDir.getName().indexOf( DOT_GIT_EXT ) );
                         final String name = repo.getK1() + repo.getK2().substring( 0, repo.getK2().indexOf( DOT_GIT_EXT ) );
-                        //Default to ListMode of null to avoid indexing scanning remote branches. Ideally the ListMode should
-                        //be identical to that used when the original JGitFileSystem was created however that information is not
-                        //persisted. Using a default of null rather than ALL is a safer default as *all* GIT repositories created
-                        //from within the workbench have a ListMode of null.
-                        final JGitFileSystem fs = new JGitFileSystem( this, fullHostNames, newRepository( repoDir, true ), name, null, buildCredential( null ) );
+                        final JGitFileSystem fs = new JGitFileSystem( this, fullHostNames, newRepository( repoDir, true ), name, buildCredential( null ) );
                         LOG.debug( "Running GIT GC on '" + name + "'" );
                         JGitUtil.gc( fs.gitRepo() );
                         LOG.debug( "Registering existing GIT filesystem '" + name + "' at " + repoDir );
@@ -561,81 +551,66 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     private void buildAndStartSSH() {
-        final ReceivePackFactory receivePackFactory = new ReceivePackFactory<BaseGitCommand>() {
-            @Override
-            public ReceivePack create( final BaseGitCommand req,
-                                       final Repository db ) throws ServiceNotEnabledException, ServiceNotAuthorizedException {
+        final ReceivePackFactory receivePackFactory = (ReceivePackFactory<BaseGitCommand>) ( req, db ) -> new ReceivePack( db ) {{
+            final ClusterService clusterService = clusterMap.get( db );
+            final JGitFileSystem fs = repoIndex.get( db );
+            final Map<String, RevCommit> oldTreeRefs = new HashMap<String, RevCommit>();
 
-                return new ReceivePack( db ) {{
-                    final ClusterService clusterService = clusterMap.get( db );
-                    final JGitFileSystem fs = repoIndex.get( db );
-                    final Map<String, RevCommit> oldTreeRefs = new HashMap<String, RevCommit>();
+            setPreReceiveHook( ( rp, commands2 ) -> {
+                fs.lock();
+                if ( clusterService != null ) {
+                    clusterService.lock();
+                }
 
-                    setPreReceiveHook( new PreReceiveHook() {
-                        @Override
-                        public void onPreReceive( final ReceivePack rp,
-                                                  final Collection<ReceiveCommand> commands ) {
-                            fs.lock();
-                            if ( clusterService != null ) {
-                                clusterService.lock();
-                            }
+                for ( final ReceiveCommand command : commands2 ) {
+                    final RevCommit lastCommit = JGitUtil.getLastCommit( fs.gitRepo(), command.getRefName() );
+                    oldTreeRefs.put( command.getRefName(), lastCommit );
+                }
+            } );
 
-                            for ( final ReceiveCommand command : commands ) {
-                                final RevCommit lastCommit = JGitUtil.getLastCommit( fs.gitRepo(), command.getRefName() );
-                                oldTreeRefs.put( command.getRefName(), lastCommit );
-                            }
-                        }
-                    } );
+            setPostReceiveHook( ( rp, commands ) -> {
+                fs.unlock();
+                final String userName = req.getUser().getName();
+                for ( Map.Entry<String, RevCommit> oldTreeRef : oldTreeRefs.entrySet() ) {
+                    final List<RevCommit> commits = JGitUtil.getCommits( fs.gitRepo(), oldTreeRef.getKey(), oldTreeRef.getValue(), JGitUtil.getLastCommit( fs.gitRepo(), oldTreeRef.getKey() ) );
+                    for ( final RevCommit revCommit : commits ) {
+                        final RevTree parent = revCommit.getParentCount() > 0 ? revCommit.getParent( 0 ).getTree() : null;
+                        notifyDiffs( fs,
+                                     oldTreeRef.getKey(),
+                                     "<ssh>",
+                                     userName,
+                                     revCommit.getFullMessage(),
+                                     parent,
+                                     revCommit.getTree() );
+                    }
+                }
 
-                    setPostReceiveHook( new PostReceiveHook() {
-                        @Override
-                        public void onPostReceive( final ReceivePack rp,
-                                                   final Collection<ReceiveCommand> commands ) {
-                            fs.unlock();
-                            final String userName = req.getUser().getName();
-                            for ( Map.Entry<String, RevCommit> oldTreeRef : oldTreeRefs.entrySet() ) {
-                                final List<RevCommit> commits = JGitUtil.getCommits( fs.gitRepo(), oldTreeRef.getKey(), oldTreeRef.getValue(), JGitUtil.getLastCommit( fs.gitRepo(), oldTreeRef.getKey() ) );
-                                for ( final RevCommit revCommit : commits ) {
-                                    final RevTree parent = revCommit.getParentCount() > 0 ? revCommit.getParent( 0 ).getTree() : null;
-                                    notifyDiffs( fs,
-                                                 oldTreeRef.getKey(),
-                                                 "<ssh>",
-                                                 userName,
-                                                 revCommit.getFullMessage(),
-                                                 parent,
-                                                 revCommit.getTree() );
-                                }
-                            }
+                if ( clusterService != null ) {
+                    //TODO {porcelli} hack, that should be addressed in future
+                    clusterService.broadcast( DEFAULT_IO_SERVICE_NAME,
+                                              new MessageType() {
 
-                            if ( clusterService != null ) {
-                                //TODO {porcelli} hack, that should be addressed in future
-                                clusterService.broadcast( DEFAULT_IO_SERVICE_NAME,
-                                                          new MessageType() {
+                                                  @Override
+                                                  public String toString() {
+                                                      return "SYNC_FS";
+                                                  }
 
-                                                              @Override
-                                                              public String toString() {
-                                                                  return "SYNC_FS";
-                                                              }
+                                                  @Override
+                                                  public int hashCode() {
+                                                      return "SYNC_FS".hashCode();
+                                                  }
+                                              },
+                                              new HashMap<String, String>() {{
+                                                  put( "fs_scheme", "git" );
+                                                  put( "fs_id", fs.id() );
+                                                  put( "fs_uri", fs.toString() );
+                                              }}
+                    );
 
-                                                              @Override
-                                                              public int hashCode() {
-                                                                  return "SYNC_FS".hashCode();
-                                                              }
-                                                          },
-                                                          new HashMap<String, String>() {{
-                                                              put( "fs_scheme", "git" );
-                                                              put( "fs_id", fs.id() );
-                                                              put( "fs_uri", fs.toString() );
-                                                          }}
-                                );
-
-                                clusterService.unlock();
-                            }
-                        }
-                    } );
-                }};
-            }
-        };
+                    clusterService.unlock();
+                }
+            } );
+        }};
 
         gitSSHService = new GitSSHService();
 
@@ -733,17 +708,6 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             throw new FileSystemAlreadyExistsException( "No filesystem for uri (" + uri + ") found." );
         }
 
-        ListBranchCommand.ListMode listMode;
-        if ( env.containsKey( GIT_ENV_KEY_LIST_MODE ) ) {
-            try {
-                listMode = ListBranchCommand.ListMode.valueOf( (String) env.get( GIT_ENV_KEY_LIST_MODE ) );
-            } catch ( Exception ex ) {
-                listMode = null;
-            }
-        } else {
-            listMode = null;
-        }
-
         final Git git;
         final CredentialsProvider credential;
 
@@ -772,7 +736,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             git = newRepository( repoDest, bare, hookDir );
         }
 
-        final JGitFileSystem fs = new JGitFileSystem( this, fullHostNames, git, name, listMode, credential );
+        final JGitFileSystem fs = new JGitFileSystem( this, fullHostNames, git, name, credential );
         fileSystems.put( name, fs );
         repoIndex.put( fs.gitRepo().getRepository(), fs );
 
@@ -1353,7 +1317,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     public void deleteBranch( final JGitPathImpl path ) {
-        final Ref branch = getBranch( path.getFileSystem().gitRepo(), path.getRefTree() );
+        final Ref branch = getBranch( path.getFileSystem().gitRepo().getRepository(), path.getRefTree() );
 
         if ( branch == null ) {
             throw new NoSuchFileException( path.toString() );
@@ -1387,7 +1351,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     public boolean deleteBranchIfExists( final JGitPathImpl path ) {
-        final Ref branch = getBranch( path.getFileSystem().gitRepo(), path.getRefTree() );
+        final Ref branch = getBranch( path.getFileSystem().gitRepo().getRepository(), path.getRefTree() );
 
         if ( branch == null ) {
             return false;

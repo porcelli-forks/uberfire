@@ -19,6 +19,7 @@ package org.uberfire.java.nio.fs.jgit;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -78,10 +79,7 @@ public class JGitFileSystemProviderSSHTest extends AbstractTestInfra {
 
         //Setup origin
         final URI originRepo = URI.create( "git://repo" );
-        final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo,
-                                                                               new HashMap<String, Object>() {{
-                                                                                   put( "listMode", "ALL" );
-                                                                               }} );
+        final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
         //Write a file to origin that we won't amend in the clone
         commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{

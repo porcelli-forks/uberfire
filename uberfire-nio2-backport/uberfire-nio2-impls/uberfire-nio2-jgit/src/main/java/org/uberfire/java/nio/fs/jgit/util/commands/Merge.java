@@ -106,7 +106,7 @@ public class Merge extends GitCommand {
 
     private void existsBranch( final Git git,
                                final String branch ) {
-        if ( JGitUtil.getBranch( git, branch ) == null ) {
+        if ( JGitUtil.getBranch( git.getRepository(), branch ) == null ) {
             throw new GitException( String.format( "Branch <<%s>> does not exists", branch ) );
         }
     }

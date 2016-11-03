@@ -178,7 +178,7 @@ public class Squash extends GitCommand {
         try {
             final RevCommit revCommit = getRevCommit( commitId, revWalk );
             final RefUpdate ru = git.getRepository().updateRef( getBranch() );
-            ru.setExpectedOldObjectId( git.getRepository().resolve( HEAD ) );
+            ru.setExpectedOldObjectId( JGitUtil.getBranch( git.getRepository(), HEAD ).getObjectId() );
             ru.setNewObjectId( commitId );
             ru.setRefLogMessage( "commit: " + revCommit.getShortMessage(), false );
             final RefUpdate.Result rc = ru.forceUpdate();
