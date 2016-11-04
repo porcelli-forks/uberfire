@@ -68,7 +68,7 @@ public class JGitFileSystemProviderWithFoldersTest extends AbstractTestInfra {
         assertThat( new File( provider.getGitRepoContainerDir(), "test/old" + ".git" ).exists() ).isTrue();
 
         int commitsCount = 0;
-        for ( RevCommit com : fs.gitRepo().log().all().call() ) {
+        for ( RevCommit com : fs.getGit().log().all().call() ) {
             commitsCount++;
         }
 

@@ -50,7 +50,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -86,7 +86,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -122,7 +122,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -158,7 +158,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -194,7 +194,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -230,7 +230,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {

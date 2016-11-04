@@ -69,25 +69,25 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
             Thread t1 = new Thread( () -> {
                 logger.info( "<<<<<<<<<<<<< " + commit.getName() + " --- " + commit.getFullMessage() );
-                printLog( fs.gitRepo() );
+                printLog( fs.getGit() );
                 VersionRecord record = makeVersionRecord( "aparedes", "aparedes@redhat.com", "squashing a!", new Date(), commit.getName() );
                 SquashOption squashOption = new SquashOption( record );
 
                 logger.info( "COMMITTER-1: Squashing" );
                 provider.setAttribute( master, SquashOption.SQUASH_ATTR, squashOption );
-                printLog( fs.gitRepo() );
+                printLog( fs.getGit() );
                 waitFor( threadsFinishedBarrier );
             } );
 
             Thread t2 = new Thread( () -> {
                 logger.info( "<<<<<<<<<<<<< " + commit.getName() + " --- " + commit.getFullMessage() );
-                printLog( fs.gitRepo() );
+                printLog( fs.getGit() );
                 VersionRecord record = makeVersionRecord( "aparedes", "aparedes@redhat.com", "squashing a!", new Date(), commit.getName() );
                 SquashOption squashOption = new SquashOption( record );
 
                 logger.info( "COMMITTER-2: Squashing" );
                 provider.setAttribute( master, SquashOption.SQUASH_ATTR, squashOption );
-                printLog( fs.gitRepo() );
+                printLog( fs.getGit() );
                 waitFor( threadsFinishedBarrier );
             } );
 
@@ -107,7 +107,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
         } catch ( InterruptedException e ) {
         }
 
-        assertEquals( 3, this.getCommitsFromBranch( fs.gitRepo(), "master" ).size() );
+        assertEquals( 3, this.getCommitsFromBranch( fs.getGit(), "master" ).size() );
     }
 
     @Test
@@ -122,23 +122,23 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
         Thread t1 = new Thread( () -> {
             logger.info( "<<<<<<<<<<<<< COMMIT TO SQUASH " + commit.getName() + " --- " + commit.getFullMessage() );
-            printLog( fs.gitRepo() );
+            printLog( fs.getGit() );
             VersionRecord record = makeVersionRecord( "aparedes", "aparedes@redhat.com", "squashing a!", new Date(), commit.getName() );
             SquashOption squashOption = new SquashOption( record );
             logger.info( "COMMITTER-1: Squashing" );
             provider.setAttribute( master, SquashOption.SQUASH_ATTR, squashOption );
-            printLog( fs.gitRepo() );
+            printLog( fs.getGit() );
             waitFor( threadsFinishedBarrier );
         } );
 
         Thread t2 = new Thread( () -> {
             logger.info( "<<<<<<<<<<<<< COMMIT TO SQUASH " + commit.getName() + " --- " + commit.getFullMessage() );
-            printLog( fs.gitRepo() );
+            printLog( fs.getGit() );
             VersionRecord record = makeVersionRecord( "aparedes", "aparedes@redhat.com", "squashing b!", new Date(), commit.getName() );
             SquashOption squashOption = new SquashOption( record );
             logger.info( "COMMITTER-2: Squashing" );
             provider.setAttribute( master, SquashOption.SQUASH_ATTR, squashOption );
-            printLog( fs.gitRepo() );
+            printLog( fs.getGit() );
             waitFor( threadsFinishedBarrier );
         } );
 
@@ -149,7 +149,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
         waitFor( threadsFinishedBarrier );
 
-        assertEquals( 2, getCommitsFromBranch( fs.gitRepo(), "master" ).size() );
+        assertEquals( 2, getCommitsFromBranch( fs.getGit(), "master" ).size() );
 
     }
 
@@ -165,23 +165,23 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
         Thread t1 = new Thread( () -> {
             logger.info( "<<<<<<<<<<<<< COMMIT TO SQUASH " + commit.getName() + " --- " + commit.getFullMessage() );
-            printLog( fs.gitRepo() );
+            printLog( fs.getGit() );
             VersionRecord record = makeVersionRecord( "aparedes", "aparedes@redhat.com", "squashing a!", new Date(), commit.getName() );
             SquashOption squashOption = new SquashOption( record );
             logger.info( "COMMITTER-1: Squashing" );
             provider.setAttribute( master, SquashOption.SQUASH_ATTR, squashOption );
-            printLog( fs.gitRepo() );
+            printLog( fs.getGit() );
             waitFor( threadsFinishedBarrier );
         } );
 
         Thread t2 = new Thread( () -> {
             logger.info( "<<<<<<<<<<<<< COMMIT TO SQUASH " + commit.getName() + " --- " + commit.getFullMessage() );
-            printLog( fs.gitRepo() );
+            printLog( fs.getGit() );
             VersionRecord record = makeVersionRecord( "aparedes", "aparedes@redhat.com", "squashing b!", new Date(), commit.getName() );
             SquashOption squashOption = new SquashOption( record );
             logger.info( "COMMITTER-2: Squashing" );
             provider.setAttribute( master, SquashOption.SQUASH_ATTR, squashOption );
-            printLog( fs.gitRepo() );
+            printLog( fs.getGit() );
             waitFor( threadsFinishedBarrier );
         } );
 
@@ -192,7 +192,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
         waitFor( threadsFinishedBarrier );
 
-        assertEquals( 2, getCommitsFromBranch( fs.gitRepo(), "master" ).size() );
+        assertEquals( 2, getCommitsFromBranch( fs.getGit(), "master" ).size() );
 
     }
 
@@ -207,7 +207,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
         final RevCommit commit = commitThreeTimesAndGetReference( fs, "byteman-exception-squash-repo", "master", "t1" );
 
         logger.info( "<<<<<<<<<<<<< COMMIT TO SQUASH " + commit.getName() + " --- " + commit.getFullMessage() );
-        printLog( fs.gitRepo() );
+        printLog( fs.getGit() );
         VersionRecord record = makeVersionRecord( "aparedes", "aparedes@redhat.com", "squashing a!", new Date(), commit.getName() );
         SquashOption squashOption = new SquashOption( record );
         logger.info( "COMMITTER-1: Squashing" );
@@ -219,7 +219,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
             fs.unlock();
         }
 
-        assertEquals( 3, getCommitsFromBranch( fs.gitRepo(), "master" ).size() );
+        assertEquals( 3, getCommitsFromBranch( fs.getGit(), "master" ).size() );
 
     }
 
@@ -372,7 +372,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
         logger.info( "Writing file: " + path.getFileName().toString() );
         stream.write( "my cool content".getBytes() );
         stream.close();
-        return this.getCommitsFromBranch( fs.gitRepo(), branch ).get( 0 );
+        return this.getCommitsFromBranch( fs.getGit(), branch ).get( 0 );
     }
 
     private List<RevCommit> getCommitsFromBranch( final Git origin,

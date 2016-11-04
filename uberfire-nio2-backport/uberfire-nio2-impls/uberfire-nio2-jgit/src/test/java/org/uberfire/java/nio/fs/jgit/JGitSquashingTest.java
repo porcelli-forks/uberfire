@@ -69,11 +69,11 @@ public class JGitSquashingTest extends AbstractTestInfra {
 
         final File gitFolder = new File( parentFolder, "myrepo.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git clone = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault() );
+        final Git clone = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), CredentialsProvider.getDefault() );
 
         createAddAndCommitFile( clone, "testfile0" );
 
@@ -157,7 +157,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
         logger.info( ">> Parent Forlder for the Test: " + parentFolder.getAbsolutePath() );
         final File gitFolder = new File( parentFolder, "my-local-repo.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "salaboy", "salaboy@example.com", "commit 1!", null, null, false, new HashMap<String, File>() {
             {
@@ -221,7 +221,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
         logger.info( ">> Parent Forlder for the Test: " + parentFolder.getAbsolutePath() );
         final File gitFolder = new File( parentFolder, "my-local-repo.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "aparedes", "aparedes@example.com", "commit 1!", null, null, false, new HashMap<String, File>() {
             {
@@ -282,7 +282,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
         logger.info( ">> Parent Folder for the Test: " + parentFolder.getAbsolutePath() );
         final File gitFolder = new File( parentFolder, "my-local-repo.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "salaboy", "salaboy@example.com", "commit 1!", null, null, false, new HashMap<String, File>() {
             {
@@ -343,7 +343,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitFolder = new File( parentFolder, "myrepo.git" );
-        final Git origin = JGitUtil.newRepository( gitFolder, false );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         new Squash( origin, "master", null, "squashed message" ).execute();
     }

@@ -51,6 +51,7 @@ import org.eclipse.jgit.dircache.DirCacheEditor;
 import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.internal.storage.reftree.RefTreeDatabase;
 import org.eclipse.jgit.lib.CommitBuilder;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
@@ -136,31 +137,24 @@ public final class JGitUtil {
     private JGitUtil() {
     }
 
-    public static Git newRepository( final File repoFolder,
-                                     final boolean bare ) throws IOException {
+    public static Git newGitRepository( final File repoFolder ) throws IOException {
         checkNotNull( "repoFolder", repoFolder );
 
         try {
-            return Git.init().setBare( bare ).setDirectory( repoFolder ).call();
+            return Git.init().setBare( true ).setDirectory( repoFolder ).call();
         } catch ( GitAPIException e ) {
             throw new IOException( e );
         }
     }
 
-    public static Git newRepository( final File repoFolder,
-                                     final boolean bare,
-                                     final File hookDir ) throws IOException {
-        final Git git = newRepository( repoFolder, bare );
+    public static Git newGitRepository( final File repoFolder,
+                                        final File hookDir ) throws IOException {
+        final Git git = newGitRepository( repoFolder );
         if ( hookDir == null ) {
             return git;
         }
 
-        final File repoHookDir;
-        if ( bare ) {
-            repoHookDir = new File( repoFolder, "hooks" );
-        } else {
-            repoHookDir = new File( repoFolder, ".git/hooks" );
-        }
+        final File repoHookDir = new File( repoFolder, "hooks" );
 
         try {
             FileUtils.copyDirectory( hookDir, repoHookDir );
@@ -228,7 +222,6 @@ public final class JGitUtil {
 
     public static Git cloneRepository( final File repoFolder,
                                        final String fromURI,
-                                       final boolean bare,
                                        final CredentialsProvider credentialsProvider ) {
 
         if ( !repoFolder.getName().endsWith( DOT_GIT_EXT ) ) {
@@ -244,7 +237,7 @@ public final class JGitUtil {
                 git = new Git( repository );
             } else {
                 git = Git.cloneRepository()
-                        .setBare( bare )
+                        .setBare( true )
                         .setCloneAllBranches( true )
                         .setURI( fromURI )
                         .setDirectory( repoFolder )
@@ -988,7 +981,7 @@ public final class JGitUtil {
     public static VersionAttributes buildVersionAttributes( final JGitFileSystem fs,
                                                             final String branchName,
                                                             final String path ) {
-        final JGitPathInfo pathInfo = resolvePath( fs.gitRepo(), branchName, path );
+        final JGitPathInfo pathInfo = resolvePath( fs.getGit(), branchName, path );
 
         if ( pathInfo == null ) {
             throw new NoSuchFileException( path );
@@ -996,13 +989,13 @@ public final class JGitUtil {
 
         final String gPath = fixPath( path );
 
-        final ObjectId id = resolveObjectId( fs.gitRepo(), branchName );
+        final ObjectId id = resolveObjectId( fs.getGit(), branchName );
 
         final List<VersionRecord> records = new ArrayList<>();
 
         if ( id != null ) {
             try {
-                final LogCommand logCommand = fs.gitRepo().log().add( id );
+                final LogCommand logCommand = fs.getGit().log().add( id );
                 if ( !gPath.isEmpty() ) {
                     logCommand.addPath( gPath );
                 }
@@ -1111,13 +1104,13 @@ public final class JGitUtil {
     public static BasicFileAttributes buildBasicAttributes( final JGitFileSystem fs,
                                                             final String branchName,
                                                             final String path ) {
-        final JGitPathInfo pathInfo = resolvePath( fs.gitRepo(), branchName, path );
+        final JGitPathInfo pathInfo = resolvePath( fs.getGit(), branchName, path );
 
         if ( pathInfo == null ) {
             throw new NoSuchFileException( path );
         }
 
-        final ObjectId id = resolveObjectId( fs.gitRepo(), branchName );
+        final ObjectId id = resolveObjectId( fs.getGit(), branchName );
         final String gPath = fixPath( path );
 
         return new BasicFileAttributes() {
@@ -1130,7 +1123,7 @@ public final class JGitUtil {
                 if ( lastModifiedDate == -1L ) {
                     RevWalk revWalk = null;
                     try {
-                        final LogCommand logCommand = fs.gitRepo().log().add( id ).setMaxCount( 1 );
+                        final LogCommand logCommand = fs.getGit().log().add( id ).setMaxCount( 1 );
                         if ( !gPath.isEmpty() ) {
                             logCommand.addPath( gPath );
                         }
@@ -1157,7 +1150,7 @@ public final class JGitUtil {
                 if ( creationDate == -1L ) {
                     RevWalk revWalk = null;
                     try {
-                        final LogCommand logCommand = fs.gitRepo().log().add( id ).setMaxCount( 1 );
+                        final LogCommand logCommand = fs.getGit().log().add( id ).setMaxCount( 1 );
                         if ( !gPath.isEmpty() ) {
                             logCommand.addPath( gPath );
                         }
@@ -1219,7 +1212,9 @@ public final class JGitUtil {
 
     public static void gc( final Git git ) {
         try {
-            git.gc().call();
+            if ( !( git.getRepository().getRefDatabase() instanceof RefTreeDatabase ) ) {
+                git.gc().call();
+            }
         } catch ( GitAPIException e ) {
             throw new RuntimeException( e );
         }

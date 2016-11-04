@@ -82,7 +82,7 @@ public class JGitFileSystemProviderSSHTest extends AbstractTestInfra {
         final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
         //Write a file to origin that we won't amend in the clone
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file-name.txt", tempFile( "temp1" ) );
         }} );
 

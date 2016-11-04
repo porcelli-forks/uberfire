@@ -45,7 +45,7 @@ public class JGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         assertThat( git ).isNotNull();
 
@@ -63,7 +63,7 @@ public class JGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "user_branch", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2222" ) );
@@ -77,7 +77,7 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), true, CredentialsProvider.getDefault() );
+        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), CredentialsProvider.getDefault() );
 
         assertThat( git ).isNotNull();
 
@@ -92,7 +92,7 @@ public class JGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "user_branch", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file2.txt", tempFile( "temp2222" ) );
@@ -103,7 +103,7 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), true, CredentialsProvider.getDefault() );
+        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), CredentialsProvider.getDefault() );
 
         assertThat( JGitUtil.checkPath( git, "user_branch", "pathx/" ).getK1() ).isEqualTo( NOT_FOUND );
         assertThat( JGitUtil.checkPath( git, "user_branch", "path/to/file2.txt" ).getK1() ).isEqualTo( FILE );
@@ -116,7 +116,7 @@ public class JGitUtilTest extends AbstractTestInfra {
         System.out.println( "COOL!:" + parentFolder.toString() );
         final File gitFolder = new File( parentFolder, "myxxxtest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file2.txt", tempFile( "tempwdf sdf asdf asd2222" ) );
@@ -127,7 +127,7 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), true, CredentialsProvider.getDefault() );
+        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), CredentialsProvider.getDefault() );
 
         assertThat( JGitUtil.checkPath( git, "master", "pathx/" ).getK1() ).isEqualTo( NOT_FOUND );
         assertThat( JGitUtil.checkPath( git, "master", "path/to/file2.txt" ).getK1() ).isEqualTo( FILE );
@@ -140,7 +140,7 @@ public class JGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         commit( git, "master", "name", "name@example.com", "commit 1", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file2.txt", tempFile( "who" ) );
@@ -156,7 +156,7 @@ public class JGitUtilTest extends AbstractTestInfra {
         }} );
 
         JGitFileSystem jGitFileSystem = mock( JGitFileSystem.class );
-        when( jGitFileSystem.gitRepo() ).thenReturn( git );
+        when( jGitFileSystem.getGit() ).thenReturn( git );
 
         VersionAttributes versionAttributes = JGitUtil.buildVersionAttributes( jGitFileSystem, "master", "path/to/file2.txt" );
 
@@ -173,7 +173,7 @@ public class JGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newRepository( gitFolder, true );
+        final Git git = JGitUtil.newGitRepository( gitFolder );
 
         final ObjectId oldHead = JGitUtil.getTreeRefObjectId( git.getRepository(), "master" );
 
