@@ -49,15 +49,15 @@ public class JGitFileSystemProviderEncodingTest extends AbstractTestInfra {
 
         final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file-name.txt", tempFile( "temp1" ) );
         }} );
 
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file+name.txt", tempFile( "temp2" ) );
         }} );
 
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file name.txt", tempFile( "temp3" ) );
         }} );
 

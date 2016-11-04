@@ -31,7 +31,7 @@ public abstract class Clone extends GitCommand {
     protected <T> Optional<T> clone( File directory,
                                      String origin,
                                      CredentialsProvider credentialsProvider ) {
-        JGitUtil.cloneRepository( directory, origin, true, credentialsProvider );
+        JGitUtil.cloneRepository( directory, origin, credentialsProvider );
         if ( logger.isDebugEnabled() ) {
             logger.debug( "{} repository successfully cloned into {}", origin, directory.getPath() );
         }

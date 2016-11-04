@@ -44,7 +44,7 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
@@ -82,7 +82,7 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
@@ -115,7 +115,7 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
@@ -153,7 +153,7 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentA ) );
@@ -187,7 +187,7 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentA ) );

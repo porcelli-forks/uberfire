@@ -83,6 +83,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         gitPrefs.put( "org.uberfire.nio.git.daemon.enabled", "true" );
         gitDaemonPort = findFreePort();
         gitPrefs.put( "org.uberfire.nio.git.daemon.port", String.valueOf( gitDaemonPort ) );
+        System.out.println( gitDaemonPort );
         return gitPrefs;
     }
 
@@ -176,7 +177,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
         }} );
 
@@ -194,7 +195,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         assertThat( fs.getPath( "file.txt" ).toFile() ).isNotNull().exists();
 
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "fileXXXXX.txt", tempFile( "temp" ) );
         }} );
 
@@ -214,7 +215,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
             }
         }
 
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "fileYYYY.txt", tempFile( "tempYYYY" ) );
         }} );
 
@@ -232,7 +233,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
         }} );
 
@@ -250,7 +251,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         assertThat( fs.getPath( "file.txt" ).toFile() ).isNotNull().exists();
 
-        commit( ( (JGitFileSystem) fs ).gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( ( (JGitFileSystem) fs ).getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "fileXXXXX.txt", tempFile( "temp" ) );
         }} );
 
@@ -262,7 +263,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final FileSystem fs2 = provider.newFileSystem( newRepo2, env2 );
 
-        commit( origin.gitRepo(), "user-branch", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "user-branch", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file1UserBranch.txt", tempFile( "tempX" ) );
         }} );
 
@@ -290,7 +291,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         assertThat( rootURIs ).isEmpty();
 
-        commit( origin.gitRepo(), "user-branch-2", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "user-branch-2", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file2UserBranch.txt", tempFile( "tempX" ) );
         }} );
 
@@ -314,7 +315,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
-        commit( origin.gitRepo(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
         }} );
 
@@ -422,7 +423,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "user", "user@example.com", "commit message", null, null, false, new HashMap<String, File>() {{
             put( "myfile.txt", tempFile( "temp\n.origin\n.content" ) );
@@ -456,7 +457,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "user", "user@example.com", "commit message", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file/myfile.txt", tempFile( "temp\n.origin\n.content" ) );
@@ -490,7 +491,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "user", "user@example.com", "commit message", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file/myfile.txt", tempFile( "temp\n.origin\n.content" ) );
@@ -517,7 +518,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp.origin.content.2" ) );
@@ -543,7 +544,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "user", "user@example.com", "commit message", null, null, false, new HashMap<String, File>() {{
             put( "myfile.txt", tempFile( "temp\n.origin\n.content" ) );
@@ -589,7 +590,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git origin = JGitUtil.newRepository( gitFolder, true );
+        final Git origin = JGitUtil.newGitRepository( gitFolder );
 
         commit( origin, "master", "user", "user@example.com", "commit message", null, null, false, new HashMap<String, File>() {{
             put( "myfile.txt", tempFile( "temp\n.origin\n.content" ) );
@@ -825,12 +826,12 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final JGitPathImpl path = (JGitPathImpl) provider.getPath( URI.create( "git://master@xcreatedir-test-repo/some/path/to/" ) );
 
-        final Pair<PathType, ObjectId> result = JGitUtil.checkPath( path.getFileSystem().gitRepo(), path.getRefTree(), path.getPath() );
+        final Pair<PathType, ObjectId> result = JGitUtil.checkPath( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
         assertThat( result.getK1() ).isEqualTo( PathType.NOT_FOUND );
 
         provider.createDirectory( path );
 
-        final Pair<PathType, ObjectId> resultAfter = JGitUtil.checkPath( path.getFileSystem().gitRepo(), path.getRefTree(), path.getPath() );
+        final Pair<PathType, ObjectId> resultAfter = JGitUtil.checkPath( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
         assertThat( resultAfter.getK1() ).isEqualTo( PathType.DIRECTORY );
 
         try {
@@ -1095,8 +1096,6 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         assertThat( attrsRoot.readAttributes().creationTime() ).isNotNull();
         assertThat( attrsRoot.readAttributes().lastModifiedTime() ).isNotNull();
         assertThat( attrsRoot.readAttributes().size() ).isEqualTo( -1L );
-
-
 
         final Path prRootPath = provider.getPath( URI.create( "git://PR-1-from/develop-master@getfileattriview-test-repo/" ) );
 
@@ -1369,7 +1368,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final OutputStream aStream = provider.newOutputStream( path );
         aStream.write( "my cool content".getBytes() );
         aStream.close();
-        final RevCommit commit = fs.gitRepo().log().setMaxCount( 1 ).call().iterator().next();
+        final RevCommit commit = fs.getGit().log().setMaxCount( 1 ).call().iterator().next();
 
         final OutputStream bStream = provider.newOutputStream( path2 );
         bStream.write( "my cool content".getBytes() );
@@ -1384,7 +1383,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         provider.setAttribute( generalPath, SquashOption.SQUASH_ATTR, squashOption );
 
         int commitsCount = 0;
-        for ( RevCommit com : fs.gitRepo().log().all().call() ) {
+        for ( RevCommit com : fs.getGit().log().all().call() ) {
             commitsCount++;
             System.out.println( com.getName() + " - " + com.getFullMessage() );
         }
@@ -1406,7 +1405,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         aStream.write( "my cool content".getBytes() );
         aStream.close();
 
-        final List<RevCommit> commits = getCommitsFromBranch( fs.gitRepo(), "develop" );
+        final List<RevCommit> commits = getCommitsFromBranch( fs.getGit(), "develop" );
 
         final OutputStream bStream = provider.newOutputStream( path2 );
         bStream.write( "my cool content".getBytes() );
@@ -1420,7 +1419,6 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         provider.setAttribute( generalPath, SquashOption.SQUASH_ATTR, squashOption );
     }
-
 
     @Test
     public void checkBatchError() throws Exception {

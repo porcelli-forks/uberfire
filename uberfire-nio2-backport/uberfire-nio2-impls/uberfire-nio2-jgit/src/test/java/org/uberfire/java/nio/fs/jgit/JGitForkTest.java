@@ -47,7 +47,7 @@ public class JGitForkTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
 
         commit( origin, "user_branch", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2222" ) );
@@ -81,14 +81,14 @@ public class JGitForkTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
 
         commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
         }} );
 
         final File gitTarget = new File( parentFolder, TARGET_GIT + ".git" );
-        final Git originTarget = JGitUtil.newRepository( gitTarget, true );
+        final Git originTarget = JGitUtil.newGitRepository( gitTarget );
 
         commit( originTarget, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
@@ -133,7 +133,7 @@ public class JGitForkTest extends AbstractTestInfra {
         final URI forkUri = URI.create( forkPath );
         final JGitFileSystem fs = (JGitFileSystem) provider.newFileSystem( forkUri, forkEnv );
 
-        assertThat( fs.gitRepo().remoteList().call().get( 0 ).getURIs().get( 0 ).toString() )
+        assertThat( fs.getGit().remoteList().call().get( 0 ).getURIs().get( 0 ).toString() )
                 .isEqualTo( new File( provider.getGitRepoContainerDir(), SOURCE + ".git" ).getAbsolutePath() );
 
     }

@@ -45,7 +45,7 @@ public class JGitFileSystemProviderDiffTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, "repo.git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
         final Repository gitRepo = origin.getRepository();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
@@ -93,7 +93,7 @@ public class JGitFileSystemProviderDiffTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, "repo.git" );
-        final Git origin = JGitUtil.newRepository( gitSource, true );
+        final Git origin = JGitUtil.newGitRepository( gitSource );
         final Repository gitRepo = origin.getRepository();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{

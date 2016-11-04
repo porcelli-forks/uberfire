@@ -69,7 +69,7 @@ public class JGitFileSystemProviderMergeTest extends AbstractTestInfra {
 
         provider.copy( userBranch, master, new MergeCopyOption() );
 
-        final Git gitRepo = ( (JGitFileSystem) master.getFileSystem() ).gitRepo();
+        final Git gitRepo = ( (JGitFileSystem) master.getFileSystem() ).getGit();
         final List<DiffEntry> result = JGitUtil.getDiff( gitRepo.getRepository(),
                                                          JGitUtil.getTreeRefObjectId( gitRepo.getRepository(), "master" ).toObjectId(),
                                                          JGitUtil.getTreeRefObjectId( gitRepo.getRepository(), "user_branch" ).toObjectId() );
@@ -164,7 +164,7 @@ public class JGitFileSystemProviderMergeTest extends AbstractTestInfra {
 
         provider.copy( userBranch, master, new MergeCopyOption() );
 
-        final Git gitRepo = ( (JGitFileSystem) master.getFileSystem() ).gitRepo();
+        final Git gitRepo = ( (JGitFileSystem) master.getFileSystem() ).getGit();
         final List<DiffEntry> result = JGitUtil.getDiff( gitRepo.getRepository(),
                                                          JGitUtil.getTreeRefObjectId( gitRepo.getRepository(), "master" ).toObjectId(),
                                                          JGitUtil.getTreeRefObjectId( gitRepo.getRepository(), "user_branch" ).toObjectId() );

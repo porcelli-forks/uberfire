@@ -73,7 +73,7 @@ public class JGitFileSystem implements FileSystem,
     private static final Set<String> SUPPORTED_ATTR_VIEWS = unmodifiableSet( new HashSet<String>( asList( "basic", "version" ) ) );
 
     private final JGitFileSystemProvider provider;
-    private final Git gitRepo;
+    private final Git git;
     private final String toStringContent;
     private boolean isClosed = false;
     private final FileStore fileStore;
@@ -95,10 +95,10 @@ public class JGitFileSystem implements FileSystem,
                     final String name,
                     final CredentialsProvider credential ) {
         this.provider = checkNotNull( "provider", provider );
-        this.gitRepo = checkNotNull( "git", git );
+        this.git = checkNotNull( "git", git );
         this.name = checkNotEmpty( "name", name );
         this.credential = checkNotNull( "credential", credential );
-        this.fileStore = new JGitFileStore( gitRepo.getRepository() );
+        this.fileStore = new JGitFileStore( this.git.getRepository() );
         if ( fullHostNames != null && !fullHostNames.isEmpty() ) {
             final StringBuilder sb = new StringBuilder();
             final Iterator<Map.Entry<String, String>> iterator = fullHostNames.entrySet().iterator();
@@ -124,8 +124,8 @@ public class JGitFileSystem implements FileSystem,
         return name;
     }
 
-    public Git gitRepo() {
-        return gitRepo;
+    public Git getGit() {
+        return git;
     }
 
     public CredentialsProvider getCredential() {
@@ -168,7 +168,7 @@ public class JGitFileSystem implements FileSystem,
             }
 
             private void init() {
-                branches = branchList( gitRepo ).iterator();
+                branches = branchList( git ).iterator();
             }
 
             @Override
@@ -337,7 +337,7 @@ public class JGitFileSystem implements FileSystem,
         if ( isClosed ) {
             return;
         }
-        gitRepo.getRepository().close();
+        git.getRepository().close();
         isClosed = true;
         try {
 
@@ -377,7 +377,7 @@ public class JGitFileSystem implements FileSystem,
         if ( fileStore != null ? !fileStore.equals( that.fileStore ) : that.fileStore != null ) {
             return false;
         }
-        if ( !gitRepo.equals( that.gitRepo ) ) {
+        if ( !git.equals( that.git ) ) {
             return false;
         }
         if ( !name.equals( that.name ) ) {
@@ -398,7 +398,7 @@ public class JGitFileSystem implements FileSystem,
     @Override
     public int hashCode() {
         int result = provider.hashCode();
-        result = 31 * result + gitRepo.hashCode();
+        result = 31 * result + git.hashCode();
         result = 31 * result + ( fileStore != null ? fileStore.hashCode() : 0 );
         result = 31 * result + name.hashCode();
         return result;
