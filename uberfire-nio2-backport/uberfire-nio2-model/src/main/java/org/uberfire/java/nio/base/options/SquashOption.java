@@ -16,8 +16,6 @@
 
 package org.uberfire.java.nio.base.options;
 
-import java.util.Date;
-
 import org.uberfire.java.nio.base.version.VersionRecord;
 
 public class SquashOption extends CommentedOption {

@@ -43,7 +43,7 @@ import static org.uberfire.commons.validation.PortablePreconditions.*;
  * to diff.
  * It returns a list of DiffFile with differences between branches.
  */
-public class DiffBranches extends GitCommand {
+public class DiffBranches {
 
     private final Repository repository;
     private final String branchA;
@@ -57,7 +57,6 @@ public class DiffBranches extends GitCommand {
         this.branchB = checkNotEmpty( "branchB", branchB );
     }
 
-    @Override
     public Optional<List<FileDiff>> execute() {
         List<FileDiff> diffs = new ArrayList<>();
 

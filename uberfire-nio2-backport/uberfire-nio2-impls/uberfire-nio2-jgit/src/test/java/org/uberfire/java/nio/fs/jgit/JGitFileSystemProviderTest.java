@@ -439,7 +439,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         assertThat( fs ).isNotNull();
 
-        final Path path = provider.getPath( URI.create( "git://origin/master@inputstream-test-repo/myfile.txt" ) );
+        final Path path = provider.getPath( URI.create( "git://master@inputstream-test-repo/myfile.txt" ) );
 
         final InputStream inputStream = provider.newInputStream( path );
         assertThat( inputStream ).isNotNull();
@@ -473,7 +473,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         assertThat( fs ).isNotNull();
 
-        final Path path = provider.getPath( URI.create( "git://origin/master@xinputstream-test-repo/path/to/file/myfile.txt" ) );
+        final Path path = provider.getPath( URI.create( "git://master@xinputstream-test-repo/path/to/file/myfile.txt" ) );
 
         final InputStream inputStream = provider.newInputStream( path );
         assertThat( inputStream ).isNotNull();

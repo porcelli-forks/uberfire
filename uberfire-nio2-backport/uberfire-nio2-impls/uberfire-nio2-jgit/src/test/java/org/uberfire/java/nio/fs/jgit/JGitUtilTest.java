@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffEntry.ChangeType;
 import org.eclipse.jgit.lib.ObjectId;
@@ -30,6 +31,7 @@ import org.junit.Test;
 import org.uberfire.java.nio.base.version.VersionAttributes;
 import org.uberfire.java.nio.base.version.VersionRecord;
 import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
 
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.*;
@@ -59,7 +61,7 @@ public class JGitUtilTest extends AbstractTestInfra {
     }
 
     @Test
-    public void testClone() throws IOException {
+    public void testClone() throws IOException, InvalidRemoteException {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
@@ -77,7 +79,7 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), CredentialsProvider.getDefault() );
+        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault()).execute().get();
 
         assertThat( git ).isNotNull();
 
@@ -88,7 +90,7 @@ public class JGitUtilTest extends AbstractTestInfra {
     }
 
     @Test
-    public void testPathResolve() throws IOException {
+    public void testPathResolve() throws IOException, InvalidRemoteException {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
@@ -103,7 +105,7 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), CredentialsProvider.getDefault() );
+        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault()).execute().get();
 
         assertThat( JGitUtil.checkPath( git, "user_branch", "pathx/" ).getK1() ).isEqualTo( NOT_FOUND );
         assertThat( JGitUtil.checkPath( git, "user_branch", "path/to/file2.txt" ).getK1() ).isEqualTo( FILE );
@@ -111,7 +113,7 @@ public class JGitUtilTest extends AbstractTestInfra {
     }
 
     @Test
-    public void testAmend() throws IOException {
+    public void testAmend() throws IOException, InvalidRemoteException {
         final File parentFolder = createTempDirectory();
         System.out.println( "COOL!:" + parentFolder.toString() );
         final File gitFolder = new File( parentFolder, "myxxxtest.git" );
@@ -127,7 +129,7 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), CredentialsProvider.getDefault() );
+        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault()).execute().get();
 
         assertThat( JGitUtil.checkPath( git, "master", "pathx/" ).getK1() ).isEqualTo( NOT_FOUND );
         assertThat( JGitUtil.checkPath( git, "master", "path/to/file2.txt" ).getK1() ).isEqualTo( FILE );
