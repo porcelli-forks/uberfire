@@ -16,61 +16,38 @@
 
 package org.uberfire.java.nio.fs.jgit.util;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
-import java.util.function.BiConsumer;
 
-import org.apache.commons.io.FileUtils;
-import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
-import org.eclipse.jgit.api.errors.MultipleParentsNotAllowedException;
 import org.eclipse.jgit.diff.DiffEntry;
-import org.eclipse.jgit.dircache.DirCache;
-import org.eclipse.jgit.dircache.DirCacheEditor;
-import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.internal.JGitText;
-import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.internal.storage.reftree.RefTreeDatabase;
-import org.eclipse.jgit.lib.CommitBuilder;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectInserter;
 import org.eclipse.jgit.lib.ObjectReader;
-import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.RepositoryCache;
-import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.FetchResult;
-import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
@@ -91,13 +68,17 @@ import org.uberfire.java.nio.file.attribute.FileTime;
 import org.uberfire.java.nio.fs.jgit.CommitInfo;
 import org.uberfire.java.nio.fs.jgit.JGitFileSystem;
 import org.uberfire.java.nio.fs.jgit.daemon.filters.HiddenBranchRefFilter;
+import org.uberfire.java.nio.fs.jgit.util.commands.BlobAsInputStream;
+import org.uberfire.java.nio.fs.jgit.util.commands.CherryPick;
+import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
+import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
+import org.uberfire.java.nio.fs.jgit.util.commands.Fetch;
+import org.uberfire.java.nio.fs.jgit.util.commands.SyncRemote;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static java.util.Collections.*;
-import static org.apache.commons.io.FileUtils.*;
 import static org.eclipse.jgit.lib.Constants.*;
 import static org.eclipse.jgit.lib.FileMode.*;
-import static org.eclipse.jgit.util.FS.*;
 import static org.uberfire.commons.data.Pair.*;
 import static org.uberfire.commons.validation.Preconditions.*;
 
@@ -140,35 +121,12 @@ public final class JGitUtil {
     public static Git newGitRepository( final File repoFolder ) throws IOException {
         checkNotNull( "repoFolder", repoFolder );
 
-        try {
-            return Git.init().setBare( true ).setDirectory( repoFolder ).call();
-        } catch ( GitAPIException e ) {
-            throw new IOException( e );
-        }
+        return new CreateRepository( repoFolder ).execute().get();
     }
 
     public static Git newGitRepository( final File repoFolder,
                                         final File hookDir ) throws IOException {
-        final Git git = newGitRepository( repoFolder );
-        if ( hookDir == null ) {
-            return git;
-        }
-
-        final File repoHookDir = new File( repoFolder, "hooks" );
-
-        try {
-            FileUtils.copyDirectory( hookDir, repoHookDir );
-        } catch ( final Exception ex ) {
-            throw new RuntimeException( ex );
-        }
-
-        for ( final File file : repoHookDir.listFiles() ) {
-            if ( file != null && file.isFile() ) {
-                file.setExecutable( true );
-            }
-        }
-
-        return git;
+        return new CreateRepository( repoFolder, hookDir ).execute().get();
     }
 
     public static InputStream resolveInputStream( final Git git,
@@ -178,29 +136,13 @@ public final class JGitUtil {
         checkNotEmpty( "treeRef", treeRef );
         checkNotEmpty( "path", path );
 
-        final String gitPath = fixPath( path );
-
-        return retryIfNeeded( NoSuchFileException.class, () -> {
-            try ( final TreeWalk tw = new TreeWalk( git.getRepository() ) ) {
-                final ObjectId tree = getTreeRefObjectId( git.getRepository(), treeRef );
-                tw.setFilter( PathFilter.create( gitPath ) );
-                tw.reset( tree );
-                while ( tw.next() ) {
-                    if ( tw.isSubtree() && !gitPath.equals( tw.getPathString() ) ) {
-                        tw.enterSubtree();
-                        continue;
-                    }
-                    return new ByteArrayInputStream( git.getRepository().open( tw.getObjectId( 0 ), Constants.OBJ_BLOB ).getBytes() );
-                }
-            } catch ( final Throwable t ) {
-                LOG.debug( "Unexpected exception, this will trigger a NoSuchFileException.", t );
-                throw new NoSuchFileException( "Can't find '" + gitPath + "' in tree '" + treeRef + "'" );
-            }
-            throw new NoSuchFileException( "Can't find '" + gitPath + "' in tree '" + treeRef + "'" );
-        } );
+        return retryIfNeeded( NoSuchFileException.class,
+                              () -> new BlobAsInputStream( git.getRepository(),
+                                                           treeRef,
+                                                           normalizePath( path ) ).execute().get() );
     }
 
-    public static String fixPath( final String path ) {
+    public static String normalizePath( final String path ) {
 
         if ( path.equals( "/" ) ) {
             return "";
@@ -220,250 +162,17 @@ public final class JGitUtil {
         return path;
     }
 
-    public static Git cloneRepository( final File repoFolder,
-                                       final String fromURI,
-                                       final CredentialsProvider credentialsProvider ) {
-
-        if ( !repoFolder.getName().endsWith( DOT_GIT_EXT ) ) {
-            throw new RuntimeException( "Invalid name" );
-        }
-
-        try {
-            final File gitDir = RepositoryCache.FileKey.resolve( repoFolder, DETECTED );
-            final Repository repository;
-            final Git git;
-            if ( gitDir != null && gitDir.exists() ) {
-                repository = new FileRepository( gitDir );
-                git = new Git( repository );
-            } else {
-                git = Git.cloneRepository()
-                        .setBare( true )
-                        .setCloneAllBranches( true )
-                        .setURI( fromURI )
-                        .setDirectory( repoFolder )
-                        .setCredentialsProvider( credentialsProvider )
-                        .call();
-                repository = git.getRepository();
-            }
-
-            fetchRepository( git, credentialsProvider );
-
-            repository.close();
-
-            return git;
-        } catch ( final Exception ex ) {
-            try {
-                forceDelete( repoFolder );
-            } catch ( final java.io.IOException e ) {
-                throw new RuntimeException( e );
-            }
-            throw new RuntimeException( ex );
-        }
-    }
-
-    public static void fetchRepository( final Git git,
-                                        final CredentialsProvider credentialsProvider,
-                                        final RefSpec... refSpecs )
-            throws InvalidRemoteException {
-        final List<RefSpec> specs = new ArrayList<RefSpec>();
-        if ( refSpecs == null || refSpecs.length == 0 ) {
-            specs.add( new RefSpec( "+refs/heads/*:refs/remotes/origin/*" ) );
-            specs.add( new RefSpec( "+refs/tags/*:refs/tags/*" ) );
-            specs.add( new RefSpec( "+refs/notes/*:refs/notes/*" ) );
-        } else {
-            specs.addAll( Arrays.asList( refSpecs ) );
-        }
-
-        try {
-            final FetchResult result = git.fetch()
-                    .setCredentialsProvider( credentialsProvider )
-                    .setRefSpecs( specs )
-                    .call();
-
-        } catch ( final InvalidRemoteException e ) {
-            throw e;
-        } catch ( final Exception ex ) {
-            throw new RuntimeException( ex );
-        }
-    }
-
     public static void syncRepository( final Git git,
                                        final CredentialsProvider credentialsProvider,
-                                       final String origin,
-                                       boolean force )
-            throws InvalidRemoteException {
-
-        if ( origin == null || origin.isEmpty() ) {
-            fetchRepository( git, credentialsProvider );
-        } else {
-            try {
-                final StoredConfig config = git.getRepository().getConfig();
-                config.setString( "remote", "upstream", "url", origin );
-                config.save();
-            } catch ( final Exception ex ) {
-                throw new RuntimeException( ex );
-            }
-
-            final List<RefSpec> specs = new ArrayList<RefSpec>();
-            specs.add( new RefSpec( "+refs/heads/*:refs/remotes/upstream/*" ) );
-            specs.add( new RefSpec( "+refs/tags/*:refs/tags/*" ) );
-            specs.add( new RefSpec( "+refs/notes/*:refs/notes/*" ) );
-
-            try {
-                git.fetch()
-                        .setCredentialsProvider( credentialsProvider )
-                        .setRefSpecs( specs )
-                        .setRemote( origin )
-                        .call();
-
-                final List<Ref> branches = git.branchList().setListMode( ListBranchCommand.ListMode.ALL ).call();
-
-                final Set<String> remoteBranches = new HashSet<>();
-                final Set<String> localBranches = new HashSet<>();
-
-                for ( final Ref branch : branches ) {
-                    final String branchName = branch.getName().substring( branch.getName().lastIndexOf( "/" ) + 1 );
-                    if ( branch.getName().startsWith( "refs/remotes" ) ) {
-                        remoteBranches.add( branchName );
-                    } else {
-                        localBranches.add( branchName );
-                    }
-                }
-
-                for ( final String localBranch : localBranches ) {
-                    if ( remoteBranches.contains( localBranch ) ) {
-                        git.branchCreate()
-                                .setName( localBranch )
-                                .setUpstreamMode( CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM )
-                                .setStartPoint( "upstream/" + localBranch )
-                                .setForce( true )
-                                .call();
-                    }
-                }
-
-                remoteBranches.removeAll( localBranches );
-
-                for ( final String branch : remoteBranches ) {
-                    git.branchCreate()
-                            .setName( branch )
-                            .setUpstreamMode( CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM )
-                            .setStartPoint( "upstream/" + branch )
-                            .setForce( true )
-                            .call();
-                }
-
-            } catch ( final InvalidRemoteException e ) {
-                throw e;
-            } catch ( final Exception ex ) {
-                throw new RuntimeException( ex );
-            }
-        }
-    }
-
-    public static void pushRepository( final Git git,
-                                       final CredentialsProvider credentialsProvider,
-                                       final String origin,
-                                       boolean force )
-            throws InvalidRemoteException {
-
-        if ( origin != null && !origin.isEmpty() ) {
-
-            try {
-                final StoredConfig config = git.getRepository().getConfig();
-                config.setString( "remote", "upstream", "url", origin );
-                config.save();
-            } catch ( final Exception ex ) {
-                throw new RuntimeException( ex );
-            }
-
-            final List<RefSpec> specs = new ArrayList<RefSpec>();
-            specs.add( new RefSpec( "+refs/heads/*:refs/remotes/upstream/*" ) );
-            specs.add( new RefSpec( "+refs/tags/*:refs/tags/*" ) );
-            specs.add( new RefSpec( "+refs/notes/*:refs/notes/*" ) );
-
-            try {
-                git.push()
-                        .setCredentialsProvider( credentialsProvider )
-                        .setRefSpecs( specs )
-                        .setRemote( origin )
-                        .setForce( force )
-                        .setPushAll()
-                        .call();
-
-            } catch ( final InvalidRemoteException e ) {
-                throw e;
-            } catch ( final Exception ex ) {
-                throw new RuntimeException( ex );
-            }
-        }
+                                       final Pair<String, String> remote ) throws InvalidRemoteException {
+        new Fetch( git, credentialsProvider, remote, emptyList() ).execute();
+        new SyncRemote( git, remote ).execute();
     }
 
     public static void cherryPick( final Repository repo,
                                    final String targetBranch,
-                                   final String... _commits ) {
-        final String reflogPrefix = "cherry-pick:";
-
-        final Git git = new Git( repo );
-
-        RevCommit newHead = null;
-
-        final ObjectId[] commits = resolveObjectIds( git, _commits );
-
-        if ( _commits.length != commits.length ) {
-            throw new IOException( "Couldn't resolve some commits." );
-        }
-
-        try ( final RevWalk revWalk = new RevWalk( repo ) ) {
-            final Ref headRef = getBranch( git.getRepository(), targetBranch );
-            newHead = revWalk.parseCommit( headRef.getObjectId() );
-
-            // loop through all refs to be cherry-picked
-            for ( final ObjectId src : commits ) {
-                final RevCommit srcCommit = revWalk.parseCommit( src );
-
-                // get the parent of the commit to cherry-pick
-                if ( srcCommit.getParentCount() != 1 ) {
-                    throw new IOException( new MultipleParentsNotAllowedException(
-                            MessageFormat.format(
-                                    JGitText.get().canOnlyCherryPickCommitsWithOneParent,
-                                    srcCommit.name(),
-                                    Integer.valueOf( srcCommit.getParentCount() ) ) ) );
-                }
-
-                final RevCommit srcParent = srcCommit.getParent( 0 );
-                revWalk.parseHeaders( srcParent );
-
-                final RevCommit revCommit = revWalk.parseCommit( src );
-                final RefUpdate ru = git.getRepository().updateRef( Constants.R_HEADS + targetBranch );
-                if ( newHead == null ) {
-                    ru.setExpectedOldObjectId( ObjectId.zeroId() );
-                } else {
-                    ru.setExpectedOldObjectId( newHead );
-                }
-                ru.setNewObjectId( src );
-                ru.setRefLogMessage( reflogPrefix + " " + srcCommit.getShortMessage(), false );
-                final RefUpdate.Result rc = ru.forceUpdate();
-                switch ( rc ) {
-                    case NEW:
-                    case FORCED:
-                    case FAST_FORWARD:
-                        newHead = revCommit;
-                        break;
-                    case REJECTED:
-                    case LOCK_FAILURE:
-                        throw new ConcurrentRefUpdateException( JGitText.get().couldNotLockHEAD, ru.getRef(), rc );
-                    default:
-                        throw new JGitInternalException( MessageFormat.format( JGitText.get().updatingRefFailed, Constants.HEAD, src.toString(), rc ) );
-                }
-            }
-        } catch ( final java.io.IOException e ) {
-            throw new IOException( new JGitInternalException(
-                    MessageFormat.format(
-                            JGitText.get().exceptionCaughtDuringExecutionOfCherryPickCommand,
-                            e ), e ) );
-        } catch ( final Exception e ) {
-            throw new IOException( e );
-        }
+                                   final String... commits ) {
+        new CherryPick( repo, targetBranch, commits ).execute();
     }
 
     public static ObjectId getTreeRefObjectId( final Repository repo,
@@ -480,14 +189,48 @@ public final class JGitUtil {
         }
     }
 
+    public static void refUpdate( final Repository repository,
+                                  final String branchName,
+                                  final ObjectId headId,
+                                  final RevCommit revCommit,
+                                  final String refLogPrefix ) throws java.io.IOException, ConcurrentRefUpdateException {
+
+        final RefUpdate ru = repository.updateRef( Constants.R_HEADS + branchName );
+        if ( headId == null ) {
+            ru.setExpectedOldObjectId( ObjectId.zeroId() );
+        } else {
+            ru.setExpectedOldObjectId( headId );
+        }
+        ru.setNewObjectId( revCommit.getId() );
+        ru.setRefLogMessage( refLogPrefix + revCommit.getShortMessage(), false );
+        final RefUpdate.Result rc = ru.forceUpdate();
+        switch ( rc ) {
+            case NEW:
+            case FORCED:
+            case FAST_FORWARD:
+                break;
+            case REJECTED:
+            case LOCK_FAILURE:
+                throw new ConcurrentRefUpdateException( JGitText.get().couldNotLockHEAD, ru.getRef(), rc );
+            default:
+                throw new JGitInternalException( MessageFormat.format( JGitText.get().updatingRefFailed, Constants.HEAD, revCommit.getId().toString(), rc ) );
+        }
+    }
+
     public static RevCommit getLastCommit( final Git git,
                                            final String branchName ) {
         return retryIfNeeded( RuntimeException.class, () -> {
-
             try ( final RevWalk walk = new RevWalk( git.getRepository() ) ) {
                 return getLastCommit( git.getRepository(), walk, branchName );
             }
         } );
+    }
+
+    public static RevCommit resolveRevCommit( final Repository repository,
+                                              final ObjectId objectId ) throws java.io.IOException {
+        try ( final ObjectReader reader = repository.newObjectReader() ) {
+            return RevCommit.parse( reader.open( objectId ).getBytes() );
+        }
     }
 
     private static RevCommit getLastCommit( final Repository repo,
@@ -594,206 +337,9 @@ public final class JGitUtil {
                                    final String branchName,
                                    final CommitInfo commitInfo,
                                    final boolean amend,
-                                   final ObjectId _originId,
+                                   final ObjectId originId,
                                    final CommitContent content ) {
-        boolean hadEffecitiveCommit = true;
-        final PersonIdent author = buildPersonIdent( git, commitInfo.getName(), commitInfo.getEmail(), commitInfo.getTimeZone(), commitInfo.getWhen() );
-
-        try ( final ObjectInserter odi = git.getRepository().newObjectInserter() ) {
-            final ObjectId headId = git.getRepository().resolve( branchName + "^{commit}" );
-
-            final ObjectId originId;
-            if ( _originId == null ) {
-                originId = git.getRepository().resolve( branchName + "^{commit}" );
-            } else {
-                originId = _originId;
-            }
-
-            final DirCache index;
-            if ( content instanceof DefaultCommitContent ) {
-                index = createTemporaryIndex( git, originId, odi, (DefaultCommitContent) content );
-            } else if ( content instanceof MoveCommitContent ) {
-                index = createTemporaryIndex( git, originId, (MoveCommitContent) content );
-            } else if ( content instanceof CopyCommitContent ) {
-                index = createTemporaryIndex( git, originId, (CopyCommitContent) content );
-            } else if ( content instanceof RevertCommitContent ) {
-                index = createTemporaryIndex( git, originId );
-            } else {
-                index = null;
-            }
-
-            if ( index != null ) {
-                final ObjectId indexTreeId = index.writeTree( odi );
-
-                final CommitBuilder commit = new CommitBuilder();
-                commit.setAuthor( author );
-                commit.setCommitter( author );
-                commit.setEncoding( Constants.CHARACTER_ENCODING );
-                commit.setMessage( commitInfo.getMessage() );
-                if ( headId != null ) {
-                    if ( amend ) {
-                        final List<ObjectId> parents = new LinkedList<>();
-                        final RevCommit previousCommit = resolveRevCommit( git.getRepository(), headId );
-                        final RevCommit[] p = previousCommit.getParents();
-                        for ( final RevCommit revCommit : p ) {
-                            parents.add( 0, revCommit.getId() );
-                        }
-                        commit.setParentIds( parents );
-                    } else {
-                        commit.setParentId( headId );
-                    }
-                }
-                commit.setTreeId( indexTreeId );
-
-                final ObjectId commitId = odi.insert( commit );
-                odi.flush();
-
-                final RevCommit revCommit = resolveRevCommit( git.getRepository(), commitId );
-                final RefUpdate ru = git.getRepository().updateRef( Constants.R_HEADS + branchName );
-                if ( headId == null ) {
-                    ru.setExpectedOldObjectId( ObjectId.zeroId() );
-                } else {
-                    ru.setExpectedOldObjectId( headId );
-                }
-                ru.setNewObjectId( commitId );
-                ru.setRefLogMessage( "commit: " + revCommit.getShortMessage(), false );
-                final RefUpdate.Result rc = ru.forceUpdate();
-                switch ( rc ) {
-                    case NEW:
-                    case FORCED:
-                    case FAST_FORWARD:
-                        break;
-                    case REJECTED:
-                    case LOCK_FAILURE:
-                        throw new ConcurrentRefUpdateException( JGitText.get().couldNotLockHEAD, ru.getRef(), rc );
-                    default:
-                        throw new JGitInternalException( MessageFormat.format( JGitText.get().updatingRefFailed, Constants.HEAD, commitId.toString(), rc ) );
-                }
-            } else {
-                hadEffecitiveCommit = false;
-            }
-        } catch ( final Throwable t ) {
-            throw new RuntimeException( t );
-        }
-        return hadEffecitiveCommit;
-    }
-
-    private static RevCommit resolveRevCommit( final Repository repository,
-                                               final ObjectId objectId ) throws java.io.IOException {
-        try ( final ObjectReader reader = repository.newObjectReader() ) {
-            return RevCommit.parse( reader.open( objectId ).getBytes() );
-        }
-    }
-
-    private static PersonIdent buildPersonIdent( final Git git,
-                                                 final String name,
-                                                 final String _email,
-                                                 final TimeZone timeZone,
-                                                 final Date when ) {
-        final TimeZone tz = timeZone == null ? TimeZone.getDefault() : timeZone;
-        final String email = _email == null ? "" : _email;
-
-        if ( name != null ) {
-            if ( when != null ) {
-                return new PersonIdent( name, email, when, tz );
-            } else {
-                return new PersonIdent( name, email );
-            }
-        }
-        return new PersonIdent( git.getRepository() );
-    }
-
-    public static DirCache createTemporaryIndexForContent( final Map<String, ObjectId> content ) {
-
-        final DirCacheEditor editor = DirCache.newInCore().editor();
-
-        try {
-            for ( final String path : content.keySet() ) {
-                addToTemporaryInCoreIndex( editor, new DirCacheEntry( path ), content.get( path ), REGULAR_FILE );
-            }
-            editor.finish();
-        } catch ( Exception e ) {
-            throw new RuntimeException( e );
-        }
-        return editor.getDirCache();
-    }
-
-    private static DirCache createTemporaryIndex( final Git git,
-                                                  final ObjectId headId,
-                                                  final ObjectInserter inserter,
-                                                  final DefaultCommitContent commitContent ) {
-
-        final Map<String, File> content = commitContent.getContent();
-        final Map<String, Pair<File, ObjectId>> paths = new HashMap<>( content.size() );
-        final Set<String> path2delete = new HashSet<>();
-
-        final DirCacheEditor editor = DirCache.newInCore().editor();
-
-        try {
-            for ( final Map.Entry<String, File> pathAndContent : content.entrySet() ) {
-                final String gPath = fixPath( pathAndContent.getKey() );
-                if ( pathAndContent.getValue() == null ) {
-                    path2delete.addAll( searchPathsToDelete( git, headId, gPath ) );
-                } else {
-                    paths.putAll( storePathsIntoHashMap( inserter, pathAndContent, gPath ) );
-                }
-            }
-
-            iterateOverTreeWalk( git, headId, ( walkPath, hTree ) -> {
-                if ( paths.containsKey( walkPath ) && paths.get( walkPath ).getK2().equals( hTree.getEntryObjectId() ) ) {
-                    paths.remove( walkPath );
-                }
-
-                if ( paths.get( walkPath ) == null && !path2delete.contains( walkPath ) ) {
-                    addToTemporaryInCoreIndex( editor, new DirCacheEntry( walkPath ), hTree.getEntryObjectId(), hTree.getEntryFileMode() );
-                }
-            } );
-
-            paths.forEach( ( key, value ) -> {
-                if ( value.getK1() != null ) {
-                    editor.add( new DirCacheEditor.PathEdit( new DirCacheEntry( key ) ) {
-                        @Override
-                        public void apply( final DirCacheEntry ent ) {
-                            ent.setLength( value.getK1().length() );
-                            ent.setLastModified( value.getK1().lastModified() );
-                            ent.setFileMode( REGULAR_FILE );
-                            ent.setObjectId( value.getK2() );
-                        }
-                    } );
-                }
-            } );
-
-            editor.finish();
-        } catch ( Exception e ) {
-            throw new RuntimeException( e );
-        }
-
-        if ( path2delete.isEmpty() && paths.isEmpty() ) {
-            //no changes!
-            return null;
-        }
-
-        return editor.getDirCache();
-    }
-
-    private static void iterateOverTreeWalk( final Git git,
-                                             final ObjectId headId,
-                                             final BiConsumer<String, CanonicalTreeParser> consumer ) {
-        if ( headId != null ) {
-            try ( final TreeWalk treeWalk = new TreeWalk( git.getRepository() ) ) {
-                final int hIdx = treeWalk.addTree( new RevWalk( git.getRepository() ).parseTree( headId ) );
-                treeWalk.setRecursive( true );
-
-                while ( treeWalk.next() ) {
-                    final String walkPath = treeWalk.getPathString();
-                    final CanonicalTreeParser hTree = treeWalk.getTree( hIdx, CanonicalTreeParser.class );
-
-                    consumer.accept( walkPath, hTree );
-                }
-            } catch ( final Exception ex ) {
-                throw new RuntimeException( ex );
-            }
-        }
+        return new Commit( git, branchName, commitInfo, amend, originId, content ).execute();
     }
 
     private static <E extends Throwable, T> T retryIfNeeded( final Class<E> eclazz,
@@ -822,115 +368,6 @@ public final class JGitUtil {
         } while ( i < JGIT_RETRY_TIMES );
 
         return null;
-    }
-
-    private static Map<String, Pair<File, ObjectId>> storePathsIntoHashMap( final ObjectInserter inserter,
-                                                                            final Map.Entry<String, File> pathAndContent,
-                                                                            final String gPath ) {
-        try ( final InputStream inputStream = new FileInputStream( pathAndContent.getValue() ) ) {
-            final Map<String, Pair<File, ObjectId>> paths = new HashMap<>();
-            final ObjectId objectId = inserter.insert( Constants.OBJ_BLOB, pathAndContent.getValue().length(), inputStream );
-            paths.put( gPath, Pair.newPair( pathAndContent.getValue(), objectId ) );
-            return paths;
-        } catch ( final Exception ex ) {
-            throw new RuntimeException( ex );
-        }
-    }
-
-    private static Set<String> searchPathsToDelete( final Git git,
-                                                    final ObjectId headId,
-                                                    final String gPath ) throws java.io.IOException {
-        try ( final TreeWalk treeWalk = new TreeWalk( git.getRepository() ) ) {
-            final Set<String> path2delete = new HashSet<>();
-            treeWalk.addTree( new RevWalk( git.getRepository() ).parseTree( headId ) );
-            treeWalk.setRecursive( true );
-            treeWalk.setFilter( PathFilter.create( gPath ) );
-
-            while ( treeWalk.next() ) {
-                path2delete.add( treeWalk.getPathString() );
-            }
-            return path2delete;
-        }
-    }
-
-    private static DirCache createTemporaryIndex( final Git git,
-                                                  final ObjectId headId,
-                                                  final MoveCommitContent commitContent ) {
-
-        final Map<String, String> content = commitContent.getContent();
-        final DirCacheEditor editor = DirCache.newInCore().editor();
-        final List<String> pathsAdded = new ArrayList<>();
-
-        try {
-            iterateOverTreeWalk( git, headId, ( walkPath, hTree ) -> {
-                final String toPath = content.get( walkPath );
-                final DirCacheEntry dcEntry = new DirCacheEntry( ( toPath == null ) ? walkPath : toPath );
-                if ( !pathsAdded.contains( dcEntry.getPathString() ) ) {
-                    addToTemporaryInCoreIndex( editor, dcEntry, hTree.getEntryObjectId(), hTree.getEntryFileMode() );
-                    pathsAdded.add( dcEntry.getPathString() );
-                }
-            } );
-            editor.finish();
-        } catch ( final Exception e ) {
-            throw new RuntimeException( e );
-        }
-
-        return editor.getDirCache();
-    }
-
-    private static DirCache createTemporaryIndex( final Git git,
-                                                  final ObjectId headId,
-                                                  final CopyCommitContent commitContent ) {
-        final Map<String, String> content = commitContent.getContent();
-
-        final DirCacheEditor editor = DirCache.newInCore().editor();
-
-        try {
-            iterateOverTreeWalk( git, headId, ( walkPath, hTree ) -> {
-                final String toPath = content.get( walkPath );
-                addToTemporaryInCoreIndex( editor, new DirCacheEntry( walkPath ), hTree.getEntryObjectId(), hTree.getEntryFileMode() );
-                if ( toPath != null ) {
-                    addToTemporaryInCoreIndex( editor, new DirCacheEntry( toPath ), hTree.getEntryObjectId(), hTree.getEntryFileMode() );
-                }
-            } );
-
-            editor.finish();
-        } catch ( final Exception e ) {
-            throw new RuntimeException( e );
-        }
-
-        return editor.getDirCache();
-    }
-
-    private static DirCache createTemporaryIndex( final Git git,
-                                                  final ObjectId headId ) {
-
-        final DirCacheEditor editor = DirCache.newInCore().editor();
-
-        try {
-            iterateOverTreeWalk( git, headId, ( walkPath, hTree ) -> {
-                addToTemporaryInCoreIndex( editor, new DirCacheEntry( walkPath ), hTree.getEntryObjectId(), hTree.getEntryFileMode() );
-            } );
-
-            editor.finish();
-        } catch ( final Exception e ) {
-            throw new RuntimeException( e );
-        }
-
-        return editor.getDirCache();
-    }
-
-    private static void addToTemporaryInCoreIndex( final DirCacheEditor editor,
-                                                   final DirCacheEntry dcEntry,
-                                                   final ObjectId objectId,
-                                                   final FileMode fileMode ) {
-        editor.add( new DirCacheEditor.PathEdit( dcEntry ) {
-            @Override
-            public void apply( final DirCacheEntry ent ) {
-                ent.setObjectId( objectId );
-                ent.setFileMode( fileMode );
-            }
-        } );
     }
 
     public static ObjectId resolveObjectId( final Git git,
@@ -987,7 +424,7 @@ public final class JGitUtil {
             throw new NoSuchFileException( path );
         }
 
-        final String gPath = fixPath( path );
+        final String gPath = normalizePath( path );
 
         final ObjectId id = resolveObjectId( fs.getGit(), branchName );
 
@@ -1111,7 +548,7 @@ public final class JGitUtil {
         }
 
         final ObjectId id = resolveObjectId( fs.getGit(), branchName );
-        final String gPath = fixPath( path );
+        final String gPath = normalizePath( path );
 
         return new BasicFileAttributes() {
 
@@ -1265,7 +702,7 @@ public final class JGitUtil {
         checkNotNull( "path", path );
         checkNotEmpty( "branchName", branchName );
 
-        final String gitPath = fixPath( path );
+        final String gitPath = normalizePath( path );
 
         if ( gitPath.isEmpty() ) {
             return newPair( PathType.DIRECTORY, null );
@@ -1307,7 +744,7 @@ public final class JGitUtil {
         checkNotNull( "path", path );
         checkNotEmpty( "branchName", branchName );
 
-        final String gitPath = fixPath( path );
+        final String gitPath = normalizePath( path );
 
         if ( gitPath.isEmpty() ) {
             return new JGitPathInfo( null, "/", TREE );
@@ -1345,7 +782,7 @@ public final class JGitUtil {
         checkNotNull( "path", path );
         checkNotEmpty( "branchName", branchName );
 
-        final String gitPath = fixPath( path );
+        final String gitPath = normalizePath( path );
 
         return retryIfNeeded( RuntimeException.class, () -> {
             final List<JGitPathInfo> result = new ArrayList<>();

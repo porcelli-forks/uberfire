@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -72,8 +73,7 @@ public class JGitForkTest extends AbstractTestInfra {
         assertThat( branchList( cloned ).get( 1 ).getName() ).isEqualTo( "refs/heads/user_branch" );
 
         final String remotePath = cloned.remoteList().call().get( 0 ).getURIs().get( 0 ).getPath();
-        assertThat( remotePath ).isEqualTo( gitSource.getPath() );
-
+        assertThat( remotePath ).isEqualTo( gitSource.getPath() + "/" );
     }
 
     @Test(expected = GitException.class)
@@ -105,7 +105,7 @@ public class JGitForkTest extends AbstractTestInfra {
         try {
             new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
             fail( "If got here is because it could for the repository" );
-        } catch ( GitException e ) {
+        } catch ( InvalidRemoteException e ) {
             assertThat( e ).isNotNull();
             logger.info( e.getMessage(), e );
         }
@@ -134,8 +134,7 @@ public class JGitForkTest extends AbstractTestInfra {
         final JGitFileSystem fs = (JGitFileSystem) provider.newFileSystem( forkUri, forkEnv );
 
         assertThat( fs.getGit().remoteList().call().get( 0 ).getURIs().get( 0 ).toString() )
-                .isEqualTo( new File( provider.getGitRepoContainerDir(), SOURCE + ".git" ).getAbsolutePath() );
-
+                .isEqualTo( new File( provider.getGitRepoContainerDir(), SOURCE + ".git" ).toPath().toUri().toString() );
     }
 
     @Test(expected = FileSystemAlreadyExistsException.class)

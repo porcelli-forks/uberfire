@@ -33,6 +33,7 @@ import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static org.uberfire.commons.validation.PortablePreconditions.*;
+import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 /**
  * Implements Git Merge command between branches in a bare repository.
@@ -41,7 +42,7 @@ import static org.uberfire.commons.validation.PortablePreconditions.*;
  * This command is based on Git Cherry Pick command.
  * It returns the list of commits cherry picked.
  */
-public class Merge extends GitCommand {
+public class Merge {
 
     private Logger logger = LoggerFactory.getLogger( Merge.class );
 
@@ -58,7 +59,6 @@ public class Merge extends GitCommand {
         this.targetBranch = checkNotEmpty( "targetBranch", targetBranch );
     }
 
-    @Override
     public Optional<List<String>> execute() {
 
         this.existsBranch( git, sourceBranch );
@@ -66,18 +66,18 @@ public class Merge extends GitCommand {
 
         final Repository repo = git.getRepository();
 
-        final RevCommit lastSourceCommit = JGitUtil.getLastCommit( git, sourceBranch );
-        final RevCommit lastTargetCommit = JGitUtil.getLastCommit( git, targetBranch );
+        final RevCommit lastSourceCommit = getLastCommit( git, sourceBranch );
+        final RevCommit lastTargetCommit = getLastCommit( git, targetBranch );
 
-        final RevCommit commonAncestor = JGitUtil.getCommonAncestor( git, lastSourceCommit, lastTargetCommit );
+        final RevCommit commonAncestor = getCommonAncestor( git, lastSourceCommit, lastTargetCommit );
 
-        final List<RevCommit> commits = JGitUtil.getCommits( git, commonAncestor, lastSourceCommit );
+        final List<RevCommit> commits = getCommits( git, commonAncestor, lastSourceCommit );
         Collections.reverse( commits );
         final String[] commitsIDs = commits.stream().map( elem -> elem.getName() ).toArray( String[]::new );
 
         canMerge( repo, commonAncestor, lastSourceCommit, lastTargetCommit, sourceBranch, targetBranch );
 
-        JGitUtil.cherryPick( repo, targetBranch, commitsIDs );
+        cherryPick( repo, targetBranch, commitsIDs );
 
         if ( logger.isDebugEnabled() ) {
             logger.debug( "Merging commits from <{}> to <{}>", sourceBranch, targetBranch );

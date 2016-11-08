@@ -39,6 +39,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
 import org.uberfire.java.nio.fs.jgit.util.commands.Squash;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
@@ -73,7 +74,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git clone = cloneRepository( gitClonedFolder, origin.getRepository().getDirectory().toString(), CredentialsProvider.getDefault() );
+        final Git clone = new Clone(gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault()).execute().get();
 
         createAddAndCommitFile( clone, "testfile0" );
 
