@@ -22,7 +22,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
@@ -57,22 +56,22 @@ public class DiffBranches {
         this.branchB = checkNotEmpty( "branchB", branchB );
     }
 
-    public Optional<List<FileDiff>> execute() {
-        List<FileDiff> diffs = new ArrayList<>();
+    public List<FileDiff> execute() {
+        final List<FileDiff> diffs = new ArrayList<>();
 
-        final List<DiffEntry> result = JGitUtil.getDiff( repository,
-                                                         JGitUtil.getTreeRefObjectId( repository, this.branchA ).toObjectId(),
-                                                         JGitUtil.getTreeRefObjectId( repository, this.branchB ).toObjectId() );
 
-        DiffFormatter formatter = createFormatter();
+        final List<DiffEntry> result = new ListDiffs( repository,
+                                                      JGitUtil.getTreeRefObjectId( repository, this.branchA ).toObjectId(),
+                                                      JGitUtil.getTreeRefObjectId( repository, this.branchB ).toObjectId() ).execute();
+
+        final DiffFormatter formatter = createFormatter();
 
         result.forEach( elem -> {
-            FileHeader header = getFileHeader( formatter, elem );
+            final FileHeader header = getFileHeader( formatter, elem );
             header.toEditList().forEach( edit -> diffs.add( createFileDiff( elem, header, edit ) ) );
         } );
 
-        return Optional.of( diffs );
-
+        return diffs;
     }
 
     private FileHeader getFileHeader( final DiffFormatter formatter,

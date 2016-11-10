@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.file.FileSystemAlreadyExistsException;
 import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.Fork;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
@@ -48,7 +49,7 @@ public class JGitForkTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
         commit( origin, "user_branch", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2222" ) );
@@ -81,21 +82,20 @@ public class JGitForkTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
         commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
         }} );
 
         final File gitTarget = new File( parentFolder, TARGET_GIT + ".git" );
-        final Git originTarget = JGitUtil.newGitRepository( gitTarget );
+        final Git originTarget = new CreateRepository( gitTarget ).execute().get();
 
         commit( originTarget, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
         }} );
 
         new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
-
     }
 
     @Test

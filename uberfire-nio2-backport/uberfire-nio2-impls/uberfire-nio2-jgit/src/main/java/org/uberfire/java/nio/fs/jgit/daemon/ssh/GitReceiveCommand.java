@@ -25,7 +25,7 @@ import org.eclipse.jgit.transport.ReceivePack;
 import org.eclipse.jgit.transport.resolver.ReceivePackFactory;
 import org.uberfire.java.nio.fs.jgit.JGitFileSystem;
 import org.uberfire.java.nio.fs.jgit.JGitFileSystemProvider;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.GarbageCollector;
 import org.uberfire.java.nio.security.FileSystemAuthorizer;
 import org.uberfire.java.nio.security.FileSystemUser;
 
@@ -56,7 +56,7 @@ public class GitReceiveCommand extends BaseGitCommand {
         try {
             final ReceivePack rp = receivePackFactory.create( this, repository );
             rp.receive( in, out, err );
-            JGitUtil.gc( new Git( repository ) );
+            new GarbageCollector( new Git( repository ) ).execute();
             fileSystem.resetCommitCount();
         } catch ( Exception ex ) {
         }

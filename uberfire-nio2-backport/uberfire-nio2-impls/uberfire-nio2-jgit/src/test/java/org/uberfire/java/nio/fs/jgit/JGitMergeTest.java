@@ -28,6 +28,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.CreateBranch;
+import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
+import org.uberfire.java.nio.fs.jgit.util.commands.ListDiffs;
 import org.uberfire.java.nio.fs.jgit.util.commands.Merge;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
@@ -44,13 +47,13 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
         }} );
 
-        createBranch( origin, "master", "develop" );
+        new CreateBranch( origin, "master", "develop" ).execute();
 
         commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2" ) );
@@ -70,9 +73,9 @@ public class JGitMergeTest extends AbstractTestInfra {
 
         new Merge( origin, "develop", "master" ).execute();
 
-        final List<DiffEntry> result = JGitUtil.getDiff( origin.getRepository(),
-                                                         JGitUtil.getTreeRefObjectId( origin.getRepository(), "master" ).toObjectId(),
-                                                         JGitUtil.getTreeRefObjectId( origin.getRepository(), "develop" ).toObjectId() );
+        final List<DiffEntry> result = new ListDiffs( origin.getRepository(),
+                                                      JGitUtil.getTreeRefObjectId( origin.getRepository(), "master" ).toObjectId(),
+                                                      JGitUtil.getTreeRefObjectId( origin.getRepository(), "develop" ).toObjectId() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
     }
@@ -82,13 +85,13 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
         }} );
 
-        createBranch( origin, "master", "develop" );
+        new CreateBranch( origin, "master", "develop" ).execute();
 
         commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
@@ -96,9 +99,9 @@ public class JGitMergeTest extends AbstractTestInfra {
 
         new Merge( origin, "develop", "master" ).execute();
 
-        final List<DiffEntry> result = JGitUtil.getDiff( origin.getRepository(),
-                                                         JGitUtil.getTreeRefObjectId( origin.getRepository(), "master" ).toObjectId(),
-                                                         JGitUtil.getTreeRefObjectId( origin.getRepository(), "develop" ).toObjectId() );
+        final List<DiffEntry> result = new ListDiffs( origin.getRepository(),
+                                                      JGitUtil.getTreeRefObjectId( origin.getRepository(), "master" ).toObjectId(),
+                                                      JGitUtil.getTreeRefObjectId( origin.getRepository(), "develop" ).toObjectId() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
     }
@@ -115,13 +118,13 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
         }} );
 
-        createBranch( origin, "master", "develop" );
+        new CreateBranch( origin, "master", "develop" ).execute();
 
         commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2" ) );
@@ -153,13 +156,13 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentA ) );
         }} );
 
-        createBranch( origin, "master", "develop" );
+        new CreateBranch( origin, "master", "develop" ).execute();
 
         commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentB ) );
@@ -171,9 +174,9 @@ public class JGitMergeTest extends AbstractTestInfra {
 
         new Merge( origin, "develop", "master" ).execute();
 
-        final List<DiffEntry> result = JGitUtil.getDiff( origin.getRepository(),
-                                                         JGitUtil.getTreeRefObjectId( origin.getRepository(), "master" ).toObjectId(),
-                                                         JGitUtil.getTreeRefObjectId( origin.getRepository(), "develop" ).toObjectId() );
+        final List<DiffEntry> result = new ListDiffs( origin.getRepository(),
+                                                      JGitUtil.getTreeRefObjectId( origin.getRepository(), "master" ).toObjectId(),
+                                                      JGitUtil.getTreeRefObjectId( origin.getRepository(), "develop" ).toObjectId() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
     }
@@ -187,13 +190,13 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentA ) );
         }} );
 
-        createBranch( origin, "master", "develop" );
+        new CreateBranch( origin, "master", "develop" ).execute();
 
         commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentB ) );
@@ -201,9 +204,9 @@ public class JGitMergeTest extends AbstractTestInfra {
 
         new Merge( origin, "develop", "master" ).execute();
 
-        final List<DiffEntry> result = JGitUtil.getDiff( origin.getRepository(),
-                                                         JGitUtil.getTreeRefObjectId( origin.getRepository(), "master" ).toObjectId(),
-                                                         JGitUtil.getTreeRefObjectId( origin.getRepository(), "develop" ).toObjectId() );
+        final List<DiffEntry> result = new ListDiffs( origin.getRepository(),
+                                                      JGitUtil.getTreeRefObjectId( origin.getRepository(), "master" ).toObjectId(),
+                                                      JGitUtil.getTreeRefObjectId( origin.getRepository(), "develop" ).toObjectId() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
     }
