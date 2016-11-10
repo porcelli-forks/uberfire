@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.base.FileDiff;
 import org.uberfire.java.nio.file.Path;
 import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.CreateBranch;
+import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 
 import static org.fest.assertions.api.Assertions.*;
 import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
@@ -45,14 +47,14 @@ public class JGitFileSystemProviderDiffTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, "repo.git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
         final Repository gitRepo = origin.getRepository();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1\ntemp1\ntemp3\nmiddle\nmoremiddle\nmoremiddle\nmoremiddle\nother\n" ) );
         }} );
 
-        createBranch( origin, "master", "develop" );
+        new CreateBranch( origin, "master", "develop" ).execute();
 
         commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1\ntemp2\nmiddle\nmoremiddle\nmoremiddle\nmoremiddle\n" ) );
@@ -93,7 +95,7 @@ public class JGitFileSystemProviderDiffTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         final File gitSource = new File( parentFolder, "repo.git" );
-        final Git origin = JGitUtil.newGitRepository( gitSource );
+        final Git origin = new CreateRepository( gitSource ).execute().get();
         final Repository gitRepo = origin.getRepository();
 
         commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
@@ -104,7 +106,7 @@ public class JGitFileSystemProviderDiffTest extends AbstractTestInfra {
             put( "file1.txt", tempFile( "temp1\ntemp2\nmiddle\nmoremiddle\nmoremiddle\nmoremiddle\n" ) );
         }} );
 
-        createBranch( origin, "master", "develop" );
+        new CreateBranch( origin, "master", "develop" ).execute();
 
         final URI newRepo = URI.create( "git://diff-repo" );
 

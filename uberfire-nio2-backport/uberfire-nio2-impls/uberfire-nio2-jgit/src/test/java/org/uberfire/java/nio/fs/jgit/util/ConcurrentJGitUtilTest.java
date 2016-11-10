@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.uberfire.java.nio.file.NoSuchFileException;
 import org.uberfire.java.nio.fs.jgit.AbstractTestInfra;
+import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 
 import static org.junit.Assert.*;
 import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
@@ -50,7 +51,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newGitRepository( gitFolder );
+        final Git git = new CreateRepository( gitFolder ).execute().get();
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -86,7 +87,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newGitRepository( gitFolder );
+        final Git git = new CreateRepository( gitFolder ).execute().get();
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -122,7 +123,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newGitRepository( gitFolder );
+        final Git git = new CreateRepository( gitFolder ).execute().get();
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -158,7 +159,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newGitRepository( gitFolder );
+        final Git git = new CreateRepository( gitFolder ).execute().get();
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -172,16 +173,16 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         } );
 
         try {
-            assertNotNull( checkPath( git, "master", "path/to/file2.txt" ) );
-            assertNotNull( checkPath( git, "master", "path/to/file2.txt" ) );
-            assertNotNull( checkPath( git, "master", "path/to/file2.txt" ) );
-            assertNotNull( checkPath( git, "master", "path/to/file2.txt" ) );
+            assertNotNull( getSimplePathInfo( git, "master", "path/to/file2.txt" ) );
+            assertNotNull( getSimplePathInfo( git, "master", "path/to/file2.txt" ) );
+            assertNotNull( getSimplePathInfo( git, "master", "path/to/file2.txt" ) );
+            assertNotNull( getSimplePathInfo( git, "master", "path/to/file2.txt" ) );
         } catch ( Exception ex ) {
             fail();
         }
 
         try {
-            assertNotNull( checkPath( git, "master", "path/to/file2.txt" ) );
+            assertNotNull( getSimplePathInfo( git, "master", "path/to/file2.txt" ) );
             fail( "forced to fail!" );
         } catch ( RuntimeException ex ) {
         }
@@ -194,7 +195,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newGitRepository( gitFolder );
+        final Git git = new CreateRepository( gitFolder ).execute().get();
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -230,7 +231,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File gitFolder = new File( parentFolder, "mytest.git" );
 
-        final Git git = JGitUtil.newGitRepository( gitFolder );
+        final Git git = new CreateRepository( gitFolder ).execute().get();
 
         commit( git, "master", "name", "name@example.com", "1st commit", null, new Date(), false, new HashMap<String, File>() {
             {
@@ -245,15 +246,15 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
 
         final RevCommit commit = getLastCommit( git, "master" );
         try {
-            assertNotNull( getCommits( git, null, commit ) );
-            assertNotNull( getCommits( git, null, commit ) );
-            assertNotNull( getCommits( git, null, commit ) );
+            assertNotNull( listCommits( git, null, commit ) );
+            assertNotNull( listCommits( git, null, commit ) );
+            assertNotNull( listCommits( git, null, commit ) );
         } catch ( Exception ex ) {
             fail();
         }
 
         try {
-            assertNotNull( getCommits( git, null, commit ) );
+            assertNotNull( listCommits( git, null, commit ) );
             fail( "forced to fail!" );
         } catch ( RuntimeException ex ) {
         }

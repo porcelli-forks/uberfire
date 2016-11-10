@@ -20,13 +20,15 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.merge.ThreeWayMerger;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
@@ -59,31 +61,31 @@ public class Merge {
         this.targetBranch = checkNotEmpty( "targetBranch", targetBranch );
     }
 
-    public Optional<List<String>> execute() {
+    public List<String> execute() {
 
-        this.existsBranch( git, sourceBranch );
-        this.existsBranch( git, targetBranch );
+        existsBranch( git, sourceBranch );
+        existsBranch( git, targetBranch );
 
         final Repository repo = git.getRepository();
 
         final RevCommit lastSourceCommit = getLastCommit( git, sourceBranch );
         final RevCommit lastTargetCommit = getLastCommit( git, targetBranch );
 
-        final RevCommit commonAncestor = getCommonAncestor( git, lastSourceCommit, lastTargetCommit );
+        final RevCommit commonAncestor = getCommonAncestor( lastSourceCommit, lastTargetCommit );
+        final List<RevCommit> commits = listCommits( git, commonAncestor, lastSourceCommit );
 
-        final List<RevCommit> commits = getCommits( git, commonAncestor, lastSourceCommit );
         Collections.reverse( commits );
         final String[] commitsIDs = commits.stream().map( elem -> elem.getName() ).toArray( String[]::new );
 
         canMerge( repo, commonAncestor, lastSourceCommit, lastTargetCommit, sourceBranch, targetBranch );
 
-        cherryPick( repo, targetBranch, commitsIDs );
+        new CherryPick( repo, targetBranch, commitsIDs ).execute();
 
         if ( logger.isDebugEnabled() ) {
             logger.debug( "Merging commits from <{}> to <{}>", sourceBranch, targetBranch );
         }
 
-        return Optional.ofNullable( Arrays.asList( commitsIDs ) );
+        return Arrays.asList( commitsIDs );
     }
 
     private void canMerge( final Repository repo,
@@ -108,6 +110,22 @@ public class Merge {
                                final String branch ) {
         if ( JGitUtil.getBranch( git.getRepository(), branch ) == null ) {
             throw new GitException( String.format( "Branch <<%s>> does not exists", branch ) );
+        }
+    }
+
+    private RevCommit getCommonAncestor( final ObjectId rightCommit,
+                                         final ObjectId leftCommit ) {
+
+        try ( final RevWalk revWalk = new RevWalk( git.getRepository() ) ) {
+            final RevCommit commitA = revWalk.lookupCommit( rightCommit );
+            final RevCommit commitB = revWalk.lookupCommit( leftCommit );
+
+            revWalk.setRevFilter( RevFilter.MERGE_BASE );
+            revWalk.markStart( commitA );
+            revWalk.markStart( commitB );
+            return revWalk.next();
+        } catch ( Exception e ) {
+            throw new GitException( "Problem when trying to get common ancestor", e );
         }
     }
 }

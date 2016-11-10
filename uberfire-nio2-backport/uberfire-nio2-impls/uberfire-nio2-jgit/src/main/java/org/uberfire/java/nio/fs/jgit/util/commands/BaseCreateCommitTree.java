@@ -30,17 +30,17 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.uberfire.java.nio.fs.jgit.util.CommitContent;
 
-public abstract class BaseCreateCommitTree<T extends CommitContent> {
+abstract class BaseCreateCommitTree<T extends CommitContent> {
 
     final T commitContent;
     final Git git;
     final ObjectId headId;
     final ObjectInserter odi;
 
-    public BaseCreateCommitTree( final Git git,
-                                 final ObjectId headId,
-                                 final ObjectInserter inserter,
-                                 final T commitContent ) {
+    BaseCreateCommitTree( final Git git,
+                          final ObjectId headId,
+                          final ObjectInserter inserter,
+                          final T commitContent ) {
         this.git = git;
         this.headId = headId;
         this.odi = inserter;

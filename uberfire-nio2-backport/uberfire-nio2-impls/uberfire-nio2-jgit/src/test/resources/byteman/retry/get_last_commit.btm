@@ -4,8 +4,8 @@
 #
 
 RULE increment counter testRetryGetLastCommit
-CLASS org.eclipse.jgit.revwalk.RevWalk
-METHOD parseCommit(org.eclipse.jgit.lib.AnyObjectId)
+CLASS org.eclipse.jgit.revwalk.RevCommit
+METHOD parse(byte[])
 AT ENTRY
 IF TRUE
 DO
@@ -13,8 +13,8 @@ DO
 ENDRULE
 
 RULE catch counter testRetryGetLastCommit
-CLASS org.eclipse.jgit.revwalk.RevWalk
-METHOD parseCommit(org.eclipse.jgit.lib.AnyObjectId)
+CLASS org.eclipse.jgit.revwalk.RevCommit
+METHOD parse(byte[])
 AT EXIT
 IF readCounter("testRetryGetLastCommit") > 6
 DO

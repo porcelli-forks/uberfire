@@ -16,8 +16,8 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
+import java.util.Arrays;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
@@ -27,9 +27,7 @@ import org.eclipse.jgit.lib.CommitBuilder;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
-import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.PersonIdent;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.uberfire.java.nio.fs.jgit.CommitInfo;
 import org.uberfire.java.nio.fs.jgit.util.CommitContent;
@@ -38,6 +36,7 @@ import org.uberfire.java.nio.fs.jgit.util.DefaultCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.MoveCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.RevertCommitContent;
 
+import static java.util.Collections.*;
 import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 /**
@@ -102,13 +101,10 @@ public class Commit {
                 commit.setMessage( commitInfo.getMessage() );
                 if ( headId != null ) {
                     if ( amend ) {
-                        final List<ObjectId> parents = new LinkedList<>();
                         final RevCommit previousCommit = resolveRevCommit( git.getRepository(), headId );
-                        final RevCommit[] p = previousCommit.getParents();
-                        for ( final RevCommit revCommit : p ) {
-                            parents.add( 0, revCommit.getId() );
-                        }
-                        commit.setParentIds( parents );
+                        final List<RevCommit> p = Arrays.asList( previousCommit.getParents() );
+                        reverse( p );
+                        commit.setParentIds( p );
                     } else {
                         commit.setParentId( headId );
                     }
