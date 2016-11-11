@@ -576,7 +576,7 @@ public class FilesTest extends AbstractBaseTest {
 
         assertThat( Files.getFileStore( Paths.get( uri ) ) ).isNotNull().isInstanceOf( JGitFileStore.class );
 
-        final URI fetch = URI.create( repoName + "?fetch" );
+        final URI fetch = URI.create( repoName + "?_fetch" );
         FileSystems.getFileSystem( fetch );
     }
 

@@ -16,10 +16,10 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Ref;
 import org.uberfire.java.nio.IOException;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 public class DeleteBranch {
 
@@ -34,7 +34,7 @@ public class DeleteBranch {
 
     public void execute() {
         try {
-            git.branchDelete().setBranchNames( branch.getName() ).setForce( true ).call();
+            git._branchDelete().setBranchNames( branch.getName() ).setForce( true ).call();
         } catch ( final GitAPIException e ) {
             throw new IOException( e );
         }

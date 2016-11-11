@@ -21,12 +21,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateBranch;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
@@ -73,9 +73,9 @@ public class JGitMergeTest extends AbstractTestInfra {
 
         new Merge( origin, "develop", "master" ).execute();
 
-        final List<DiffEntry> result = new ListDiffs( origin.getRepository(),
-                                                      new GetTreeFromRef( origin.getRepository(), "master" ).execute(),
-                                                      new GetTreeFromRef( origin.getRepository(), "develop" ).execute() ).execute();
+        final List<DiffEntry> result = new ListDiffs( origin,
+                                                      new GetTreeFromRef( origin, "master" ).execute(),
+                                                      new GetTreeFromRef( origin, "develop" ).execute() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
     }
@@ -99,9 +99,9 @@ public class JGitMergeTest extends AbstractTestInfra {
 
         new Merge( origin, "develop", "master" ).execute();
 
-        final List<DiffEntry> result = new ListDiffs( origin.getRepository(),
-                                                      new GetTreeFromRef( origin.getRepository(), "master" ).execute(),
-                                                      new GetTreeFromRef( origin.getRepository(), "develop" ).execute() ).execute();
+        final List<DiffEntry> result = new ListDiffs( origin,
+                                                      new GetTreeFromRef( origin, "master" ).execute(),
+                                                      new GetTreeFromRef( origin, "develop" ).execute() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
     }
@@ -174,9 +174,9 @@ public class JGitMergeTest extends AbstractTestInfra {
 
         new Merge( origin, "develop", "master" ).execute();
 
-        final List<DiffEntry> result = new ListDiffs( origin.getRepository(),
-                                                      new GetTreeFromRef( origin.getRepository(), "master" ).execute(),
-                                                      new GetTreeFromRef( origin.getRepository(), "develop" ).execute() ).execute();
+        final List<DiffEntry> result = new ListDiffs( origin,
+                                                      new GetTreeFromRef( origin, "master" ).execute(),
+                                                      new GetTreeFromRef( origin, "develop" ).execute() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
     }
@@ -204,9 +204,9 @@ public class JGitMergeTest extends AbstractTestInfra {
 
         new Merge( origin, "develop", "master" ).execute();
 
-        final List<DiffEntry> result = new ListDiffs( origin.getRepository(),
-                                                      new GetTreeFromRef( origin.getRepository(), "master" ).execute(),
-                                                      new GetTreeFromRef( origin.getRepository(), "develop" ).execute() ).execute();
+        final List<DiffEntry> result = new ListDiffs( origin,
+                                                      new GetTreeFromRef( origin, "master" ).execute(),
+                                                      new GetTreeFromRef( origin, "develop" ).execute() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
     }

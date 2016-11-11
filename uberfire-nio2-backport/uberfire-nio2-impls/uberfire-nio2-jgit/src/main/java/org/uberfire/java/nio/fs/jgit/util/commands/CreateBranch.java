@@ -16,8 +16,8 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 /**
  * TODO: update me
@@ -39,7 +39,7 @@ public class CreateBranch {
 
     public void execute() {
         try {
-            git.branchCreate().setName( target ).setStartPoint( source ).call();
+            git._branchCreate().setName( target ).setStartPoint( source ).call();
         } catch ( GitAPIException e ) {
             throw new RuntimeException( e );
         }

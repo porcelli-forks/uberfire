@@ -19,32 +19,32 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.io.IOException;
 
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 /**
  * TODO: update me
  */
 public class GetFirstCommit {
 
-    private final Repository repo;
+    private final Git git;
     private final Ref ref;
 
-    public GetFirstCommit( final Repository repo,
+    public GetFirstCommit( final Git git,
                            final String branchName ) {
-        this( repo, new GetRef( repo, branchName ).execute() );
+        this( git, git.getRef( branchName ) );
     }
 
-    public GetFirstCommit( final Repository repo,
+    public GetFirstCommit( final Git git,
                            final Ref ref ) {
-        this.repo = repo;
+        this.git = git;
         this.ref = ref;
     }
 
     public RevCommit execute() throws IOException {
-        try ( final RevWalk rw = new RevWalk( repo ) ) {
+        try ( final RevWalk rw = new RevWalk( git.getRepository() ) ) {
             final RevCommit root = rw.parseCommit( ref.getObjectId() );
             rw.sort( RevSort.REVERSE );
             rw.markStart( root );
@@ -53,5 +53,4 @@ public class GetFirstCommit {
         }
         return null;
     }
-
 }

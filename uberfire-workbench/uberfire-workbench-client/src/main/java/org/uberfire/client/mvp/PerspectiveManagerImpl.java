@@ -104,7 +104,7 @@ public class PerspectiveManagerImpl implements PerspectiveManager {
 
     /**
      * Fetches the given perspective's definition either from the server (if non-transient) or from the activity itself
-     * (if transient or if the fetch call fails).
+     * (if transient or if the _fetch call fails).
      */
     class FetchPerspectiveCommand implements Command {
 

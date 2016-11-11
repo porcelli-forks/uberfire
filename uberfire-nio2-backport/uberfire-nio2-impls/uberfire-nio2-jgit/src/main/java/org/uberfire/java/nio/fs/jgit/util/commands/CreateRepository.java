@@ -20,8 +20,8 @@ import java.io.File;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
-import org.eclipse.jgit.api.Git;
 import org.uberfire.java.nio.IOException;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 public class CreateRepository {
 
@@ -40,7 +40,7 @@ public class CreateRepository {
 
     public Optional<Git> execute() {
         try {
-            final Git git = Git.init().setBare( true ).setDirectory( repoDir ).call();
+            final org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.init().setBare( true ).setDirectory( repoDir ).call();
 
             if ( hookDir != null ) {
                 final File repoHookDir = new File( repoDir, "hooks" );
@@ -58,7 +58,7 @@ public class CreateRepository {
                 }
             }
 
-            return Optional.of( git );
+            return Optional.of( new Git( git ) );
         } catch ( final Exception ex ) {
             throw new IOException( ex );
         }

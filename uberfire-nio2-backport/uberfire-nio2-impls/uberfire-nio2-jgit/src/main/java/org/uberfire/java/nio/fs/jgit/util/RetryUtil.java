@@ -16,25 +16,9 @@
 
 package org.uberfire.java.nio.fs.jgit.util;
 
-import java.io.InputStream;
-import java.util.List;
-
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.commons.config.ConfigProperties;
-import org.uberfire.java.nio.file.NoSuchFileException;
-import org.uberfire.java.nio.fs.jgit.util.commands.BlobAsInputStream;
-import org.uberfire.java.nio.fs.jgit.util.commands.GetLastCommit;
-import org.uberfire.java.nio.fs.jgit.util.commands.GetPathInfo;
-import org.uberfire.java.nio.fs.jgit.util.commands.ListCommits;
-import org.uberfire.java.nio.fs.jgit.util.commands.ListPathContent;
-import org.uberfire.java.nio.fs.jgit.util.commands.PathUtil;
-import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
-
-import static org.uberfire.commons.validation.Preconditions.*;
 
 public final class RetryUtil {
 
@@ -72,32 +56,8 @@ public final class RetryUtil {
     private RetryUtil() {
     }
 
-    public static InputStream resolveInputStream( final Git git,
-                                                  final String treeRef,
-                                                  final String path ) {
-        checkNotNull( "git", git );
-        checkNotEmpty( "treeRef", treeRef );
-        checkNotEmpty( "path", path );
-
-        return retryIfNeeded( NoSuchFileException.class,
-                              () -> new BlobAsInputStream( git.getRepository(),
-                                                           treeRef,
-                                                           PathUtil.normalize( path ) ).execute().get() );
-    }
-
-    public static RevCommit getLastCommit( final Git git,
-                                           final String branchName ) {
-        return retryIfNeeded( RuntimeException.class, () -> new GetLastCommit( git.getRepository(), branchName ).execute() );
-    }
-
-    public static List<RevCommit> listCommits( final Git git,
-                                               final ObjectId startRange,
-                                               final ObjectId endRange ) {
-        return retryIfNeeded( RuntimeException.class, () -> new ListCommits( git.getRepository(), startRange, endRange ).execute() );
-    }
-
-    private static <E extends Throwable, T> T retryIfNeeded( final Class<E> eclazz,
-                                                             final ThrowableSupplier<T> supplier ) throws E {
+    public static <E extends Throwable, T> T retryIfNeeded( final Class<E> eclazz,
+                                                            final ThrowableSupplier<T> supplier ) throws E {
         int i = 0;
         do {
             try {
@@ -123,25 +83,4 @@ public final class RetryUtil {
 
         return null;
     }
-
-    public static PathInfo getPathInfo( final Git git,
-                                        final String branchName,
-                                        final String path ) {
-        checkNotNull( "git", git );
-        checkNotNull( "path", path );
-        checkNotEmpty( "branchName", branchName );
-
-        return retryIfNeeded( RuntimeException.class, () -> new GetPathInfo( git, branchName, path ).execute() );
-    }
-
-    public static List<PathInfo> listPathContent( final Git git,
-                                                  final String branchName,
-                                                  final String path ) {
-        checkNotNull( "git", git );
-        checkNotNull( "path", path );
-        checkNotEmpty( "branchName", branchName );
-
-        return retryIfNeeded( RuntimeException.class, () -> new ListPathContent( git, branchName, path ).execute() );
-    }
-
 }

@@ -21,12 +21,12 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.junit.Test;
 import org.uberfire.java.nio.base.options.MergeCopyOption;
 import org.uberfire.java.nio.file.Path;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetTreeFromRef;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListDiffs;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
@@ -72,9 +72,9 @@ public class JGitFileSystemProviderMergeTest extends AbstractTestInfra {
 
         final Git gitRepo = ( (JGitFileSystem) master.getFileSystem() ).getGit();
 
-        final List<DiffEntry> result = new ListDiffs( gitRepo.getRepository(),
-                                                      new GetTreeFromRef( gitRepo.getRepository(), "master" ).execute(),
-                                                      new GetTreeFromRef( gitRepo.getRepository(), "user_branch" ).execute() ).execute();
+        final List<DiffEntry> result = new ListDiffs( gitRepo,
+                                                      new GetTreeFromRef( gitRepo, "master" ).execute(),
+                                                      new GetTreeFromRef( gitRepo, "user_branch" ).execute() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
 
@@ -167,9 +167,9 @@ public class JGitFileSystemProviderMergeTest extends AbstractTestInfra {
         provider.copy( userBranch, master, new MergeCopyOption() );
 
         final Git gitRepo = ( (JGitFileSystem) master.getFileSystem() ).getGit();
-        final List<DiffEntry> result = new ListDiffs( gitRepo.getRepository(),
-                                                      new GetTreeFromRef( gitRepo.getRepository(), "master" ).execute(),
-                                                      new GetTreeFromRef( gitRepo.getRepository(), "user_branch" ).execute() ).execute();
+        final List<DiffEntry> result = new ListDiffs( gitRepo,
+                                                      new GetTreeFromRef( gitRepo, "master" ).execute(),
+                                                      new GetTreeFromRef( gitRepo, "user_branch" ).execute() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
 

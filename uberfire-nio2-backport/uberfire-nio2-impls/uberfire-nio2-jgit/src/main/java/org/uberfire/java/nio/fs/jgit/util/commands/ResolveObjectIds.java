@@ -19,9 +19,9 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 /**
  * TODO: update me
@@ -42,7 +42,7 @@ public class ResolveObjectIds {
 
         for ( final String id : ids ) {
             try {
-                final Ref refName = new GetRef( git.getRepository(), id ).execute();
+                final Ref refName = git.getRef( id );
                 if ( refName != null ) {
                     result.add( refName.getObjectId() );
                     continue;

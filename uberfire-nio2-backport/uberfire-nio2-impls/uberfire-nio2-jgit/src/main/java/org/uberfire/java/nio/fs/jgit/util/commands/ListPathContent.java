@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 
 public class ListPathContent {
@@ -44,7 +44,7 @@ public class ListPathContent {
 
         final String gitPath = PathUtil.normalize( path );
         final List<PathInfo> result = new ArrayList<>();
-        final ObjectId tree = new GetTreeFromRef( git.getRepository(), branchName ).execute();
+        final ObjectId tree = git.getTreeFromRef( branchName );
         if ( tree == null ) {
             return result;
         }

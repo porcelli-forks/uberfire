@@ -59,13 +59,13 @@ public class JGitBasicAttributeView extends AbstractBasicFileAttributeView<JGitP
     private BasicFileAttributes buildAttrs( final JGitFileSystem fs,
                                             final String branchName,
                                             final String path ) {
-        final PathInfo pathInfo = getPathInfo( fs.getGit(), branchName, path );
+        final PathInfo pathInfo = fs.getGit().getPathInfo( branchName, path );
 
         if ( pathInfo == null || pathInfo.getPathType().equals( PathType.NOT_FOUND ) ) {
             throw new NoSuchFileException( path );
         }
 
-        final Ref ref = new GetRef( fs.getGit().getRepository(), branchName ).execute();
+        final Ref ref = fs.getGit().getRef( branchName );
 
         return new BasicFileAttributes() {
 
@@ -76,7 +76,7 @@ public class JGitBasicAttributeView extends AbstractBasicFileAttributeView<JGitP
             public FileTime lastModifiedTime() {
                 if ( lastModifiedDate == null ) {
                     try {
-                        lastModifiedDate = new FileTimeImpl( new GetLastCommit( fs.getGit().getRepository(), ref ).execute().getCommitterIdent().getWhen().getTime() );
+                        lastModifiedDate = new FileTimeImpl( fs.getGit().getLastCommit( ref ).getCommitterIdent().getWhen().getTime() );
                     } catch ( final Exception e ) {
                         lastModifiedDate = new FileTimeImpl( 0 );
                     }
@@ -93,7 +93,7 @@ public class JGitBasicAttributeView extends AbstractBasicFileAttributeView<JGitP
             public FileTime creationTime() {
                 if ( creationDate == null ) {
                     try {
-                        creationDate = new FileTimeImpl( new GetFirstCommit( fs.getGit().getRepository(), ref ).execute().getCommitterIdent().getWhen().getTime() );
+                        creationDate = new FileTimeImpl( fs.getGit().getFirstCommit( ref ).getCommitterIdent().getWhen().getTime() );
                     } catch ( final Exception e ) {
                         creationDate = new FileTimeImpl( 0 );
                     }

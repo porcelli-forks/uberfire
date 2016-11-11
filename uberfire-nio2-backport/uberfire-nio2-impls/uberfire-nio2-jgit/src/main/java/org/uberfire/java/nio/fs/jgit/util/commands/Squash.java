@@ -19,7 +19,6 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.io.IOException;
 import java.util.Spliterator;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -31,10 +30,10 @@ import org.eclipse.jgit.lib.ObjectInserter;
 import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static java.util.stream.StreamSupport.*;
-import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.getLastCommit;
 
 /**
  * Implements the Git Squash command. It needs the repository were he is going to make the squash,
@@ -62,7 +61,7 @@ public class Squash extends BaseRefUpdateCommand {
     public void execute() {
         final Repository repo = this.git.getRepository();
 
-        final RevCommit latestCommit = getLastCommit( git, branch );
+        final RevCommit latestCommit = git.getLastCommit( branch );
         final RevCommit startCommit = checkIfCommitIsPresentAtBranch( this.git, this.branch, this.startCommitString );
 
         RevCommit parent = startCommit;
@@ -100,8 +99,8 @@ public class Squash extends BaseRefUpdateCommand {
                                                       final String startCommitString ) {
 
         try {
-            final ObjectId id = new GetRef( git.getRepository(), branch ).execute().getObjectId();
-            final Spliterator<RevCommit> log = git.log().add( id ).call().spliterator();
+            final ObjectId id = git.getRef( branch ).getObjectId();
+            final Spliterator<RevCommit> log = git._log().add( id ).call().spliterator();
             return stream( log, false )
                     .filter( ( elem ) -> elem.getName().equals( startCommitString ) )
                     .findFirst().orElseThrow( () -> new GitException( "Commit is not present at branch " + branch ) );
