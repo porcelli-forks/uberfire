@@ -17,6 +17,7 @@
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import java.text.MessageFormat;
+import java.util.List;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.JGitInternalException;
@@ -52,22 +53,22 @@ public class CherryPick {
 
         RevCommit newHead = null;
 
-        final ObjectId[] commits = resolveObjectIds( git, this.commits );
-        if ( commits.length != this.commits.length ) {
+        final List<ObjectId> commits = new ResolveObjectIds( git, this.commits ).execute();
+        if ( commits.size() != this.commits.length ) {
             throw new IOException( "Couldn't resolve some commits." );
         }
 
-        final Ref headRef = getBranch( git.getRepository(), targetBranch );
+        final Ref headRef = new GetRef( git.getRepository(), targetBranch ).execute();
         if ( headRef == null ) {
             throw new IOException( "Branch not found." );
         }
 
         try {
-            newHead = resolveRevCommit( repo, headRef.getObjectId() );
+            newHead = new ResolveRevCommit( repo, headRef.getObjectId() ).execute();
 
             // loop through all refs to be cherry-picked
             for ( final ObjectId src : commits ) {
-                final RevCommit srcCommit = resolveRevCommit( repo, src );
+                final RevCommit srcCommit = new ResolveRevCommit( repo, src ).execute();
 
                 // get the parent of the commit to cherry-pick
                 if ( srcCommit.getParentCount() != 1 ) {

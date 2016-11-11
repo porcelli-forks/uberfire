@@ -21,31 +21,61 @@ import org.eclipse.jgit.lib.ObjectId;
 
 import static org.eclipse.jgit.lib.FileMode.*;
 
-public class PathInfo extends SimplePathInfo {
+public class PathInfo {
 
     private final long size;
+    private final ObjectId objectId;
+    private final String path;
+    private final PathType pathType;
 
     public PathInfo( final ObjectId objectId,
                      final String path,
                      final FileMode fileMode ) {
-        this( objectId, path, fileMode, -1 );
+        this( objectId, path, convert( fileMode ), -1 );
     }
 
     public PathInfo( final ObjectId objectId,
                      final String path,
                      final FileMode fileMode,
                      long size ) {
-        super( objectId, path, convert( fileMode ) );
+        this( objectId, path, convert( fileMode ) );
+    }
+
+    public PathInfo( final ObjectId objectId,
+                     final String path,
+                     final PathType pathType ) {
+        this( objectId, path, pathType, -1 );
+    }
+
+    public PathInfo( final ObjectId objectId,
+                     final String path,
+                     final PathType pathType,
+                     long size ) {
+        this.objectId = objectId;
+        this.path = path;
+        this.pathType = pathType;
         this.size = size;
     }
 
-    private static JGitUtil.PathType convert( final FileMode fileMode ) {
+    private static PathType convert( final FileMode fileMode ) {
         if ( fileMode.equals( FileMode.TYPE_TREE ) ) {
-            return JGitUtil.PathType.DIRECTORY;
+            return PathType.DIRECTORY;
         } else if ( fileMode.equals( TYPE_FILE ) ) {
-            return JGitUtil.PathType.FILE;
+            return PathType.FILE;
         }
         return null;
+    }
+
+    public ObjectId getObjectId() {
+        return objectId;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public PathType getPathType() {
+        return pathType;
     }
 
     public long getSize() {

@@ -16,14 +16,21 @@
 
 package org.uberfire.java.nio.fs.jgit;
 
+import org.eclipse.jgit.lib.Ref;
 import org.uberfire.java.nio.IOException;
 import org.uberfire.java.nio.base.AbstractBasicFileAttributeView;
-import org.uberfire.java.nio.base.NotImplementedException;
+import org.uberfire.java.nio.base.FileTimeImpl;
+import org.uberfire.java.nio.file.NoSuchFileException;
 import org.uberfire.java.nio.file.attribute.BasicFileAttributeView;
 import org.uberfire.java.nio.file.attribute.BasicFileAttributes;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.file.attribute.FileTime;
+import org.uberfire.java.nio.fs.jgit.util.PathInfo;
+import org.uberfire.java.nio.fs.jgit.util.PathType;
+import org.uberfire.java.nio.fs.jgit.util.commands.GetFirstCommit;
+import org.uberfire.java.nio.fs.jgit.util.commands.GetLastCommit;
+import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
 
-import static org.uberfire.commons.validation.PortablePreconditions.*;
+import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 /**
  *
@@ -39,7 +46,7 @@ public class JGitBasicAttributeView extends AbstractBasicFileAttributeView<JGitP
     @Override
     public BasicFileAttributes readAttributes() throws IOException {
         if ( attrs == null ) {
-            attrs = JGitUtil.buildBasicAttributes( path.getFileSystem(), path.getRefTree(), path.getPath() );
+            attrs = buildAttrs( path.getFileSystem(), path.getRefTree(), path.getPath() );
         }
         return attrs;
     }
@@ -49,4 +56,81 @@ public class JGitBasicAttributeView extends AbstractBasicFileAttributeView<JGitP
         return new Class[]{ BasicFileAttributeView.class, JGitBasicAttributeView.class };
     }
 
+    private BasicFileAttributes buildAttrs( final JGitFileSystem fs,
+                                            final String branchName,
+                                            final String path ) {
+        final PathInfo pathInfo = getPathInfo( fs.getGit(), branchName, path );
+
+        if ( pathInfo == null || pathInfo.getPathType().equals( PathType.NOT_FOUND ) ) {
+            throw new NoSuchFileException( path );
+        }
+
+        final Ref ref = new GetRef( fs.getGit().getRepository(), branchName ).execute();
+
+        return new BasicFileAttributes() {
+
+            private FileTime lastModifiedDate = null;
+            private FileTime creationDate = null;
+
+            @Override
+            public FileTime lastModifiedTime() {
+                if ( lastModifiedDate == null ) {
+                    try {
+                        lastModifiedDate = new FileTimeImpl( new GetLastCommit( fs.getGit().getRepository(), ref ).execute().getCommitterIdent().getWhen().getTime() );
+                    } catch ( final Exception e ) {
+                        lastModifiedDate = new FileTimeImpl( 0 );
+                    }
+                }
+                return lastModifiedDate;
+            }
+
+            @Override
+            public FileTime lastAccessTime() {
+                return lastModifiedTime();
+            }
+
+            @Override
+            public FileTime creationTime() {
+                if ( creationDate == null ) {
+                    try {
+                        creationDate = new FileTimeImpl( new GetFirstCommit( fs.getGit().getRepository(), ref ).execute().getCommitterIdent().getWhen().getTime() );
+                    } catch ( final Exception e ) {
+                        creationDate = new FileTimeImpl( 0 );
+                    }
+                }
+                return creationDate;
+            }
+
+            @Override
+            public boolean isRegularFile() {
+                return pathInfo.getPathType().equals( PathType.FILE );
+            }
+
+            @Override
+            public boolean isDirectory() {
+                return pathInfo.getPathType().equals( PathType.DIRECTORY );
+            }
+
+            @Override
+            public boolean isSymbolicLink() {
+                return false;
+            }
+
+            @Override
+            public boolean isOther() {
+                return false;
+            }
+
+            @Override
+            public long size() {
+                return pathInfo.getSize();
+            }
+
+            @Override
+            public Object fileKey() {
+                return pathInfo.getObjectId() == null ? null : pathInfo.getObjectId().toString();
+            }
+
+        };
+    }
 }

@@ -20,9 +20,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.LogCommand;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevWalk;
 
 public class ListCommits {
@@ -30,6 +37,18 @@ public class ListCommits {
     private final Repository repo;
     private final ObjectId startRange;
     private final ObjectId endRange;
+    private final Ref ref;
+    private final String path;
+
+    public ListCommits( final Repository repo,
+                        final Ref ref,
+                        final String path ) {
+        this.repo = repo;
+        this.ref = ref;
+        this.path = path;
+        this.startRange = null;
+        this.endRange = null;
+    }
 
     public ListCommits( final Repository repo,
                         final ObjectId startRange,
@@ -37,15 +56,18 @@ public class ListCommits {
         this.repo = repo;
         this.startRange = startRange;
         this.endRange = endRange;
+        this.ref = null;
+        this.path = null;
     }
 
-    public List<RevCommit> execute() throws IOException {
+    public List<RevCommit> execute() throws IOException, GitAPIException {
         final List<RevCommit> list = new ArrayList<>();
-        try ( final RevWalk rw = new RevWalk( repo ) ) {
-            // resolve branch
-            rw.markStart( rw.parseCommit( endRange ) );
-            if ( startRange != null ) {
-                rw.markUninteresting( rw.parseCommit( startRange ) );
+        try ( final RevWalk rw = buildWalk() ) {
+            if ( ref == null ) {
+                rw.markStart( rw.parseCommit( endRange ) );
+                if ( startRange != null ) {
+                    rw.markUninteresting( rw.parseCommit( startRange ) );
+                }
             }
             for ( RevCommit rev : rw ) {
                 list.add( rev );
@@ -54,7 +76,18 @@ public class ListCommits {
         } catch ( final Exception ex ) {
             throw ex;
         }
+    }
 
+    private RevWalk buildWalk() throws GitAPIException, IncorrectObjectTypeException, MissingObjectException {
+        if ( ref != null ) {
+            final LogCommand logCommand = new Git( repo ).log().add( ref.getObjectId() );
+            if ( path != null && !path.isEmpty() ) {
+                logCommand.addPath( path );
+            }
+            return (RevWalk) logCommand.call();
+        }
+
+        return new RevWalk( repo );
     }
 
 }

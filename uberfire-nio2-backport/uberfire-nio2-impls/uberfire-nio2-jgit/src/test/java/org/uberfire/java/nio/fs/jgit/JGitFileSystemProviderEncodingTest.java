@@ -25,9 +25,9 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.uberfire.java.nio.file.FileSystem;
+import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 
 import static org.fest.assertions.api.Assertions.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitFileSystemProviderEncodingTest extends AbstractTestInfra {
 
@@ -49,17 +49,17 @@ public class JGitFileSystemProviderEncodingTest extends AbstractTestInfra {
 
         final JGitFileSystem origin = (JGitFileSystem) provider.newFileSystem( originRepo, Collections.emptyMap() );
 
-        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file-name.txt", tempFile( "temp1" ) );
-        }} );
+        }} ).execute();
 
-        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file+name.txt", tempFile( "temp2" ) );
-        }} );
+        }} ).execute();
 
-        commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin.getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file name.txt", tempFile( "temp3" ) );
-        }} );
+        }} ).execute();
 
         final URI newRepo = URI.create( "git://my-encoding-repo-name" );
 

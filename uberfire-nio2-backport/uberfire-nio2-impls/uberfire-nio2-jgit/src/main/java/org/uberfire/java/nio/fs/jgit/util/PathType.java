@@ -16,34 +16,9 @@
 
 package org.uberfire.java.nio.fs.jgit.util;
 
-import org.eclipse.jgit.lib.ObjectId;
-
 /**
  * TODO: update me
  */
-public class SimplePathInfo {
-
-    private final ObjectId objectId;
-    private final String path;
-    private final JGitUtil.PathType pathType;
-
-    public SimplePathInfo( final ObjectId objectId,
-                           final String path,
-                           final JGitUtil.PathType pathType ) {
-        this.objectId = objectId;
-        this.path = path;
-        this.pathType = pathType;
-    }
-
-    public ObjectId getObjectId() {
-        return objectId;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public JGitUtil.PathType getPathType() {
-        return pathType;
-    }
+public enum PathType {
+    NOT_FOUND, DIRECTORY, FILE
 }

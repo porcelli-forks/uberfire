@@ -100,7 +100,7 @@ public class Squash {
                                                       final String startCommitString ) {
 
         try {
-            final ObjectId id = resolveObjectId( git, branch );
+            final ObjectId id = new GetRef( git.getRepository(), branch ).execute().getObjectId();
             final Spliterator<RevCommit> log = git.log().add( id ).call().spliterator();
             return stream( log, false )
                     .filter( ( elem ) -> elem.getName().equals( startCommitString ) )

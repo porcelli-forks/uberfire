@@ -30,13 +30,13 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.file.FileSystemAlreadyExistsException;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.Fork;
+import org.uberfire.java.nio.fs.jgit.util.commands.ListRefs;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static org.fest.assertions.api.Assertions.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitForkTest extends AbstractTestInfra {
 
@@ -51,15 +51,15 @@ public class JGitForkTest extends AbstractTestInfra {
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
         final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "user_branch", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "user_branch", "name", "name@example.com", "commit!", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2222" ) );
-        }} );
-        commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
+        }} ).execute();
+        new Commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
-        }} );
-        commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
+        }} ).execute();
+        new Commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file3.txt", tempFile( "temp3" ) );
-        }} );
+        }} ).execute();
 
         new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
 
@@ -68,10 +68,10 @@ public class JGitForkTest extends AbstractTestInfra {
 
         assertThat( cloned ).isNotNull();
 
-        assertThat( branchList( cloned ) ).hasSize( 2 );
+        assertThat( new ListRefs( cloned.getRepository() ).execute() ).hasSize( 2 );
 
-        assertThat( branchList( cloned ).get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
-        assertThat( branchList( cloned ).get( 1 ).getName() ).isEqualTo( "refs/heads/user_branch" );
+        assertThat( new ListRefs( cloned.getRepository() ).execute().get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
+        assertThat( new ListRefs( cloned.getRepository() ).execute().get( 1 ).getName() ).isEqualTo( "refs/heads/user_branch" );
 
         final String remotePath = cloned.remoteList().call().get( 0 ).getURIs().get( 0 ).getPath();
         assertThat( remotePath ).isEqualTo( gitSource.getPath() + "/" );
@@ -84,16 +84,16 @@ public class JGitForkTest extends AbstractTestInfra {
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
         final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
-        }} );
+        }} ).execute();
 
         final File gitTarget = new File( parentFolder, TARGET_GIT + ".git" );
         final Git originTarget = new CreateRepository( gitTarget ).execute().get();
 
-        commit( originTarget, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
+        new Commit( originTarget, "master", "name", "name@example.com", "commit", null, null, false, new HashMap<String, File>() {{
             put( "file.txt", tempFile( "temp" ) );
-        }} );
+        }} ).execute();
 
         new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
     }

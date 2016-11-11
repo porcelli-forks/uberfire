@@ -142,18 +142,18 @@ import org.uberfire.java.nio.fs.jgit.daemon.git.Daemon;
 import org.uberfire.java.nio.fs.jgit.daemon.git.DaemonClient;
 import org.uberfire.java.nio.fs.jgit.daemon.ssh.BaseGitCommand;
 import org.uberfire.java.nio.fs.jgit.daemon.ssh.GitSSHService;
-import org.uberfire.java.nio.fs.jgit.util.SimplePathInfo;
 import org.uberfire.java.nio.fs.jgit.util.CommitContent;
 import org.uberfire.java.nio.fs.jgit.util.CopyCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.DefaultCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.PathInfo;
 import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 import org.uberfire.java.nio.fs.jgit.util.MoveCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.PathInfo;
+import org.uberfire.java.nio.fs.jgit.util.PathType;
 import org.uberfire.java.nio.fs.jgit.util.ProxyAuthenticator;
 import org.uberfire.java.nio.fs.jgit.util.RevertCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.commands.CherryPick;
 import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
+import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateBranch;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.DeleteBranch;
@@ -161,6 +161,7 @@ import org.uberfire.java.nio.fs.jgit.util.commands.DiffBranches;
 import org.uberfire.java.nio.fs.jgit.util.commands.Fetch;
 import org.uberfire.java.nio.fs.jgit.util.commands.Fork;
 import org.uberfire.java.nio.fs.jgit.util.commands.GarbageCollector;
+import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListDiffs;
 import org.uberfire.java.nio.fs.jgit.util.commands.Merge;
 import org.uberfire.java.nio.fs.jgit.util.commands.Push;
@@ -178,8 +179,8 @@ import static org.uberfire.commons.data.Pair.*;
 import static org.uberfire.commons.validation.PortablePreconditions.*;
 import static org.uberfire.java.nio.base.dotfiles.DotFileUtils.*;
 import static org.uberfire.java.nio.file.StandardOpenOption.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.PathType.*;
 import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
+import static org.uberfire.java.nio.fs.jgit.util.PathType.*;
 
 public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                                                Disposable {
@@ -925,7 +926,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final SimplePathInfo result = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
 
         if ( result.getPathType().equals( PathType.DIRECTORY ) ) {
             throw new NotDirectoryException( path.toString() );
@@ -1013,7 +1014,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             }
         }
 
-        final SimplePathInfo result = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
 
         if ( result.getPathType().equals( PathType.DIRECTORY ) ) {
             throw new NotDirectoryException( path.toString() );
@@ -1098,7 +1099,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final SimplePathInfo result = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
 
         if ( !result.getPathType().equals( PathType.DIRECTORY ) ) {
             throw new NotDirectoryException( path.toString() );
@@ -1191,7 +1192,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final SimplePathInfo result = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
 
         if ( !result.getPathType().equals( NOT_FOUND ) ) {
             throw new FileAlreadyExistsException( path.toString() );
@@ -1260,7 +1261,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
     public void deleteAsset( final JGitPathImpl path,
                              final DeleteOption... options ) {
-        final SimplePathInfo result = getSimplePathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
+        final PathInfo result = getPathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
 
         if ( result.getPathType().equals( PathType.DIRECTORY ) ) {
             if ( deleteNonEmptyDirectory( options ) ) {
@@ -1300,7 +1301,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     public void deleteBranch( final JGitPathImpl path ) {
-        final Ref branch = getBranch( path.getFileSystem().getGit().getRepository(), path.getRefTree() );
+        final Ref branch = new GetRef( path.getFileSystem().getGit().getRepository(), path.getRefTree() ).execute();
 
         if ( branch == null ) {
             throw new NoSuchFileException( path.toString() );
@@ -1344,7 +1345,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
     public boolean deleteAssetIfExists( final JGitPathImpl path,
                                         final DeleteOption... options ) {
-        final SimplePathInfo result = getSimplePathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
+        final PathInfo result = getPathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
 
         if ( result.getPathType().equals( PathType.DIRECTORY ) ) {
             if ( deleteNonEmptyDirectory( options ) ) {
@@ -1447,8 +1448,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     private void copyAsset( final JGitPathImpl source,
                             final JGitPathImpl target,
                             final CopyOption... options ) {
-        final SimplePathInfo sourceResult = getSimplePathInfo( source.getFileSystem().getGit(), source.getRefTree(), source.getPath() );
-        final SimplePathInfo targetResult = getSimplePathInfo( target.getFileSystem().getGit(), target.getRefTree(), target.getPath() );
+        final PathInfo sourceResult = getPathInfo( source.getFileSystem().getGit(), source.getRefTree(), source.getPath() );
+        final PathInfo targetResult = getPathInfo( target.getFileSystem().getGit(), target.getRefTree(), target.getPath() );
 
         if ( !isRoot( target ) && targetResult.getPathType() != NOT_FOUND ) {
             if ( !contains( options, StandardCopyOption.REPLACE_EXISTING ) ) {
@@ -1479,8 +1480,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     private void copyAssetContent( final JGitPathImpl source,
                                    final JGitPathImpl target,
                                    final CopyOption... options ) {
-        final SimplePathInfo sourceResult = getSimplePathInfo( source.getFileSystem().getGit(), source.getRefTree(), source.getPath() );
-        final SimplePathInfo targetResult = getSimplePathInfo( target.getFileSystem().getGit(), target.getRefTree(), target.getPath() );
+        final PathInfo sourceResult = getPathInfo( source.getFileSystem().getGit(), source.getRefTree(), source.getPath() );
+        final PathInfo targetResult = getPathInfo( target.getFileSystem().getGit(), target.getRefTree(), target.getPath() );
 
         if ( !isRoot( target ) && targetResult.getPathType() != NOT_FOUND ) {
             if ( !contains( options, StandardCopyOption.REPLACE_EXISTING ) ) {
@@ -1516,7 +1517,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         final List<JGitPathImpl> directories = new ArrayList<JGitPathImpl>();
         for ( final Path path : newDirectoryStream( source, null ) ) {
             final JGitPathImpl gPath = toPathImpl( path );
-            final SimplePathInfo pathResult = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+            final PathInfo pathResult = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
             if ( pathResult.getPathType() == DIRECTORY ) {
                 directories.add( gPath );
                 continue;
@@ -1609,7 +1610,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     }
 
     private boolean existsBranch( final JGitPathImpl path ) {
-        return hasBranch( path.getFileSystem().getGit(), path.getRefTree() );
+        return new GetRef( path.getFileSystem().getGit().getRepository(), path.getRefTree() ).execute() != null;
     }
 
     private boolean isBranch( final JGitPathImpl path ) {
@@ -1671,8 +1672,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     private void moveAsset( final JGitPathImpl source,
                             final JGitPathImpl target,
                             final CopyOption... options ) {
-        final SimplePathInfo sourceResult = getSimplePathInfo( source.getFileSystem().getGit(), source.getRefTree(), source.getPath() );
-        final SimplePathInfo targetResult = getSimplePathInfo( target.getFileSystem().getGit(), target.getRefTree(), target.getPath() );
+        final PathInfo sourceResult = getPathInfo( source.getFileSystem().getGit(), source.getRefTree(), source.getPath() );
+        final PathInfo targetResult = getPathInfo( target.getFileSystem().getGit(), target.getRefTree(), target.getPath() );
 
         if ( !isRoot( target ) && targetResult.getPathType() != NOT_FOUND ) {
             if ( !contains( options, StandardCopyOption.REPLACE_EXISTING ) ) {
@@ -1705,7 +1706,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         final Map<JGitPathImpl, JGitPathImpl> fromTo = new HashMap<JGitPathImpl, JGitPathImpl>();
         for ( final Path path : newDirectoryStream( source, null ) ) {
             final JGitPathImpl gPath = toPathImpl( path );
-            final SimplePathInfo pathResult = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+            final PathInfo pathResult = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
             if ( pathResult.getPathType() == DIRECTORY ) {
                 fromTo.putAll( mapDirectoryContent( gPath, composePath( target, (JGitPathImpl) gPath.getFileName() ) ) );
             } else {
@@ -1749,8 +1750,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         final JGitPathImpl gPathA = toPathImpl( pathA );
         final JGitPathImpl gPathB = toPathImpl( pathB );
 
-        final SimplePathInfo resultA = getSimplePathInfo( gPathA.getFileSystem().getGit(), gPathA.getRefTree(), gPathA.getPath() );
-        final SimplePathInfo resultB = getSimplePathInfo( gPathB.getFileSystem().getGit(), gPathB.getRefTree(), gPathB.getPath() );
+        final PathInfo resultA = getPathInfo( gPathA.getFileSystem().getGit(), gPathA.getRefTree(), gPathA.getPath() );
+        final PathInfo resultB = getPathInfo( gPathB.getFileSystem().getGit(), gPathB.getRefTree(), gPathB.getPath() );
 
         if ( resultA.getPathType() == PathType.FILE && resultA.getObjectId().equals( resultB.getObjectId() ) ) {
             return true;
@@ -1789,7 +1790,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final SimplePathInfo result = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo result = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
 
         if ( result.getPathType().equals( NOT_FOUND ) ) {
             throw new NoSuchFileException( path.toString() );
@@ -1806,7 +1807,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final SimplePathInfo pathResult = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo pathResult = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
         if ( pathResult.getPathType().equals( NOT_FOUND ) ) {
             throw new NoSuchFileException( path.toString() );
         }
@@ -1866,7 +1867,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         final JGitPathImpl gPath = toPathImpl( path );
 
-        final SimplePathInfo pathResult = getSimplePathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
+        final PathInfo pathResult = getPathInfo( gPath.getFileSystem().getGit(), gPath.getRefTree(), gPath.getPath() );
         if ( pathResult.getPathType().equals( NOT_FOUND ) ) {
             throw new NoSuchFileException( path.toString() );
         }
@@ -2213,9 +2214,9 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
             final boolean hasCommit;
             if ( batchState && fileSystem.getBatchCommitInfo() != null ) {
-                hasCommit = JGitUtil.commit( git, branchName, fileSystem.getBatchCommitInfo(), amend, commitContent );
+                hasCommit = new Commit( git, branchName, fileSystem.getBatchCommitInfo(), amend, null, commitContent ).execute();
             } else {
-                hasCommit = JGitUtil.commit( git, branchName, commitInfo, amend, commitContent );
+                hasCommit = new Commit( git, branchName, commitInfo, amend, null, commitContent ).execute();
             }
 
             if ( !batchState ) {
@@ -2325,7 +2326,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
             final Path newPath;
             if ( !diffEntry.getNewPath().equals( DiffEntry.DEV_NULL ) ) {
-                PathInfo pathInfo = resolvePath( fs.getGit(), tree, diffEntry.getNewPath() );
+                final PathInfo pathInfo = getPathInfo( fs.getGit(), tree, diffEntry.getNewPath() );
                 newPath = JGitPathImpl.create( fs, "/" + pathInfo.getPath(), host, pathInfo.getObjectId(), false );
             } else {
                 newPath = null;

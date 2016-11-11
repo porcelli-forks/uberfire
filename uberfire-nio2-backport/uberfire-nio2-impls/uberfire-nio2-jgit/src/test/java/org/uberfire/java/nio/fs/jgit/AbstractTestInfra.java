@@ -41,6 +41,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.uberfire.java.nio.fs.jgit.util.DefaultCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 
 import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
@@ -104,10 +106,10 @@ public abstract class AbstractTestInfra {
 
         final Git git = Git.init().setBare( true ).setDirectory( tempDir ).call();
 
-        commit( git, "master", "name", "name@example.com", "cool1", null, null, false, new HashMap<String, File>() {{
+        new Commit( git, "master", new CommitInfo( null, "name", "name@example.com", "cool1", null, null ), false, null, new DefaultCommitContent( new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "content" ) );
             put( "file2.txt", tempFile( "content2" ) );
-        }} );
+        }}) ).execute();
 
         return git;
     }
