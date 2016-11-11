@@ -24,12 +24,14 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
 import org.uberfire.commons.data.Pair;
 import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 import static org.uberfire.commons.validation.PortablePreconditions.*;
+import static org.uberfire.commons.validation.Preconditions.checkInstanceOf;
 
 public class Push {
 
-    private final Git git;
+    private final GitImpl git;
     private final CredentialsProvider credentialsProvider;
     private final Pair<String, String> remote;
     private final boolean force;
@@ -40,7 +42,7 @@ public class Push {
                  final Pair<String, String> remote,
                  final boolean force,
                  final Collection<RefSpec> refSpecs ) {
-        this.git = checkNotNull( "git", git );
+        this.git = checkInstanceOf( "git", git, GitImpl.class );
         this.credentialsProvider = credentialsProvider;
         this.remote = checkNotNull( "remote", remote );
         this.force = force;

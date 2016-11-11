@@ -28,17 +28,17 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 public class ListCommits {
 
-    private final Git git;
+    private final GitImpl git;
     private final ObjectId startRange;
     private final ObjectId endRange;
     private final Ref ref;
     private final String path;
 
-    public ListCommits( final Git git,
+    public ListCommits( final GitImpl git,
                         final Ref ref,
                         final String path ) {
         this.git = git;
@@ -48,7 +48,7 @@ public class ListCommits {
         this.endRange = null;
     }
 
-    public ListCommits( final Git git,
+    public ListCommits( final GitImpl git,
                         final ObjectId startRange,
                         final ObjectId endRange ) {
         this.git = git;

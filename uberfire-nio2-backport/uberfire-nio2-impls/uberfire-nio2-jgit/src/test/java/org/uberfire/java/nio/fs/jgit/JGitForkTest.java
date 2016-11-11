@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.file.FileSystemAlreadyExistsException;
 import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.Fork;
@@ -73,7 +74,7 @@ public class JGitForkTest extends AbstractTestInfra {
         assertThat( new ListRefs( cloned.getRepository() ).execute().get( 0 ).getName() ).isEqualTo( "refs/heads/master" );
         assertThat( new ListRefs( cloned.getRepository() ).execute().get( 1 ).getName() ).isEqualTo( "refs/heads/user_branch" );
 
-        final String remotePath = cloned._remoteList().call().get( 0 ).getURIs().get( 0 ).getPath();
+        final String remotePath = ( (GitImpl) cloned )._remoteList().call().get( 0 ).getURIs().get( 0 ).getPath();
         assertThat( remotePath ).isEqualTo( gitSource.getPath() + "/" );
     }
 
@@ -133,7 +134,7 @@ public class JGitForkTest extends AbstractTestInfra {
         final URI forkUri = URI.create( forkPath );
         final JGitFileSystem fs = (JGitFileSystem) provider.newFileSystem( forkUri, forkEnv );
 
-        assertThat( fs.getGit()._remoteList().call().get( 0 ).getURIs().get( 0 ).toString() )
+        assertThat( ( (GitImpl) fs.getGit() )._remoteList().call().get( 0 ).getURIs().get( 0 ).toString() )
                 .isEqualTo( new File( provider.getGitRepoContainerDir(), SOURCE + ".git" ).toPath().toUri().toString() );
     }
 

@@ -17,17 +17,17 @@
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 /**
  * TODO: update me
  */
 public class CreateBranch {
 
-    private final Git git;
+    private final GitImpl git;
     private final String source;
 
-    public CreateBranch( final Git git,
+    public CreateBranch( final GitImpl git,
                          final String source,
                          final String target ) {
         this.git = git;

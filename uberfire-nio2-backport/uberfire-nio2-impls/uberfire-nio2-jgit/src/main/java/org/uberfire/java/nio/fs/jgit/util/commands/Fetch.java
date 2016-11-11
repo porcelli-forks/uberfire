@@ -23,16 +23,16 @@ import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
 import org.uberfire.commons.data.Pair;
-import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 public class Fetch {
 
-    private final Git git;
+    private final GitImpl git;
     private final CredentialsProvider credentialsProvider;
     private final Pair<String, String> remote;
     private final Collection<RefSpec> refSpecs;
 
-    public Fetch( final Git git,
+    public Fetch( final GitImpl git,
                   final CredentialsProvider credentialsProvider,
                   final Collection<RefSpec> refSpecs ) {
         this.git = git;
@@ -41,7 +41,7 @@ public class Fetch {
         this.remote = Pair.newPair( "origin", null );
     }
 
-    public Fetch( final Git git,
+    public Fetch( final GitImpl git,
                   final CredentialsProvider credentialsProvider,
                   final Pair<String, String> remote,
                   final Collection<RefSpec> refSpecs ) {

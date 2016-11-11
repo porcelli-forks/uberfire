@@ -26,14 +26,14 @@ import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.lib.Ref;
 import org.uberfire.commons.data.Pair;
-import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 public class SyncRemote {
 
-    private final Git git;
+    private final GitImpl git;
     private final Pair<String, String> remote;
 
-    public SyncRemote( final Git git,
+    public SyncRemote( final GitImpl git,
                        final Pair<String, String> remote ) {
         this.git = git;
         this.remote = remote;

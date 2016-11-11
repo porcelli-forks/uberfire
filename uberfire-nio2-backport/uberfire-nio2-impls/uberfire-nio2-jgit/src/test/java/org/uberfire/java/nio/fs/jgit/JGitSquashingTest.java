@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.fs.jgit.util.Git;
-import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
@@ -69,7 +69,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
         new Commit( origin, "master", "salaboy", "salaboy@example.com", "commit 2!", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file2.txt", tempFile( "initial content file 2" ) );
         }} ).execute();
-        Iterable<RevCommit> logs = origin._log().setMaxCount( 1 ).all().call();
+        Iterable<RevCommit> logs = ( (GitImpl) origin )._log().setMaxCount( 1 ).all().call();
         RevCommit secondCommit = logs.iterator().next();
 
         new Commit( origin, "master", "salaboy", "salaboy@example.com", "commit 3!", null, null, false, new HashMap<String, File>() {{
@@ -82,7 +82,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
         new Commit( origin, "master", "salaboy", "salaboy@example.com", "commit 5!", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file3.txt", tempFile( "initial content file 3" ) );
         }} ).execute();
-        logs = origin._log().all().call();
+        logs = ( (GitImpl) origin )._log().all().call();
         int commitsCount = 0;
         for ( RevCommit commit : logs ) {
             logger.info( ">>> Origin Commit: " + commit.getFullMessage() + " - " + commit.toString() );
@@ -97,10 +97,10 @@ public class JGitSquashingTest extends AbstractTestInfra {
         assertThat( origin.getPathInfo( "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
 
         logger.info( "Squashing from " + secondCommit.getName() + "  to HEAD" );
-        new Squash( origin, "master", secondCommit.getName(), "squashed message" ).execute();
+        new Squash( (GitImpl) origin, "master", secondCommit.getName(), "squashed message" ).execute();
 
         commitsCount = 0;
-        for ( RevCommit commit : origin._log().all().call() ) {
+        for ( RevCommit commit : ( (GitImpl) origin )._log().all().call() ) {
             logger.info( ">>> Final Commit: " + commit.getFullMessage() + " - " + commit.toString() );
             commitsCount++;
         }
@@ -130,14 +130,14 @@ public class JGitSquashingTest extends AbstractTestInfra {
             put( "path/to/file4.txt", tempFile( "initial content file 1" ) );
         }} ).execute();
 
-        List<RevCommit> masterCommits = getCommitsFromBranch( origin, "master" );
-        List<RevCommit> developCommits = getCommitsFromBranch( origin, "develop" );
+        List<RevCommit> masterCommits = getCommitsFromBranch( (GitImpl) origin, "master" );
+        List<RevCommit> developCommits = getCommitsFromBranch( (GitImpl) origin, "develop" );
 
         assertThat( masterCommits.size() ).isEqualTo( 3 );
         assertThat( developCommits.size() ).isEqualTo( 1 );
 
         try {
-            new Squash( origin, "master", developCommits.get( 0 ).getName(), "squashed message" ).execute();
+            new Squash( (GitImpl) origin, "master", developCommits.get( 0 ).getName(), "squashed message" ).execute();
             fail( "If it reaches here the test has failed because he found the commit into the branch" );
         } catch ( GitException e ) {
             logger.info( e.getMessage() );
@@ -146,7 +146,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
 
     }
 
-    private List<RevCommit> getCommitsFromBranch( final Git origin,
+    private List<RevCommit> getCommitsFromBranch( final GitImpl origin,
                                                   String branch ) throws GitAPIException, MissingObjectException, IncorrectObjectTypeException {
         List<RevCommit> commits = new ArrayList<>();
         final ObjectId id = new GetRef( origin.getRepository(), branch ).execute().getObjectId();
@@ -176,7 +176,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
         new Commit( origin, "master", "salaboy", "salaboy@example.com", "commit 2!", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file2.txt", tempFile( "initial content file 2" ) );
         }} ).execute();
-        Iterable<RevCommit> logs = origin._log().setMaxCount( 1 ).all().call();
+        Iterable<RevCommit> logs = ( (GitImpl) origin )._log().setMaxCount( 1 ).all().call();
         RevCommit secondCommit = logs.iterator().next();
 
         new Commit( origin, "master", "salaboy", "salaboy@example.com", "commit 3!", null, null, false, new HashMap<String, File>() {{
@@ -190,7 +190,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
             put( "path/file3.txt", tempFile( "initial content file 3" ) );
         }} ).execute();
 
-        for ( RevCommit commit : origin._log().all().call() ) {
+        for ( RevCommit commit : ( (GitImpl) origin )._log().all().call() ) {
             logger.info( ">>> Origin Commit: " + commit.getFullMessage() + " - " + commit.toString() );
         }
 
@@ -201,10 +201,10 @@ public class JGitSquashingTest extends AbstractTestInfra {
         assertThat( origin.getPathInfo( "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
 
         logger.info( "Squashing from " + secondCommit.getName() + "  to HEAD" );
-        new Squash( origin, "master", secondCommit.getName(), "squashed message" ).execute();
+        new Squash( (GitImpl) origin, "master", secondCommit.getName(), "squashed message" ).execute();
 
         int commitsCount = 0;
-        for ( RevCommit commit : origin._log().all().call() ) {
+        for ( RevCommit commit : ( (GitImpl) origin )._log().all().call() ) {
             logger.info( ">>> Final Commit: " + commit.getFullMessage() + " - " + commit.toString() );
             commitsCount++;
         }
@@ -213,7 +213,7 @@ public class JGitSquashingTest extends AbstractTestInfra {
 
     }
 
-    private void createAddAndCommitFile( Git git,
+    private void createAddAndCommitFile( GitImpl git,
                                          String file ) throws GitAPIException, IOException {
         File myfile = new File( git.getRepository().getDirectory().getParent(), file );
         myfile.createNewFile();

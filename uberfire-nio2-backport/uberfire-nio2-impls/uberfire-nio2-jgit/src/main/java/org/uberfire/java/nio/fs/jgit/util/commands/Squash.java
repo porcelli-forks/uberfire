@@ -30,7 +30,7 @@ import org.eclipse.jgit.lib.ObjectInserter;
 import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static java.util.stream.StreamSupport.*;
@@ -44,11 +44,11 @@ import static java.util.stream.StreamSupport.*;
 public class Squash extends BaseRefUpdateCommand {
 
     private final String branch;
-    private final Git git;
+    private final GitImpl git;
     private String squashedCommitMessage;
     private String startCommitString;
 
-    public Squash( final Git git,
+    public Squash( final GitImpl git,
                    final String branch,
                    final String startCommitString,
                    final String squashedCommitMessage ) {
@@ -94,7 +94,7 @@ public class Squash extends BaseRefUpdateCommand {
      * @param startCommitString The commit it needs to find
      * @throws {@link GitException} when it cannot find the commit in that branch
      */
-    private RevCommit checkIfCommitIsPresentAtBranch( final Git git,
+    private RevCommit checkIfCommitIsPresentAtBranch( final GitImpl git,
                                                       final String branch,
                                                       final String startCommitString ) {
 

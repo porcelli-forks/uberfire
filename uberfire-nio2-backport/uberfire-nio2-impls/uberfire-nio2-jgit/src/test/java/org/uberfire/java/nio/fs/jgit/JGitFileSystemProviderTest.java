@@ -63,13 +63,13 @@ import org.uberfire.java.nio.file.attribute.BasicFileAttributeView;
 import org.uberfire.java.nio.file.attribute.BasicFileAttributes;
 import org.uberfire.java.nio.file.attribute.FileTime;
 import org.uberfire.java.nio.fs.jgit.util.Git;
-import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
-import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
-import org.uberfire.java.nio.fs.jgit.util.model.PathType;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
+import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
+import org.uberfire.java.nio.fs.jgit.util.model.PathType;
 
 import static org.fest.assertions.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -253,7 +253,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         assertThat( fs.getPath( "file.txt" ).toFile() ).isNotNull().exists();
 
-        new Commit(  ( (JGitFileSystem) fs ).getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        new Commit( ( (JGitFileSystem) fs ).getGit(), "master", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "fileXXXXX.txt", tempFile( "temp" ) );
         }} ).execute();
 
@@ -265,7 +265,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final FileSystem fs2 = provider.newFileSystem( newRepo2, env2 );
 
-        new Commit ( origin.getGit(), "user-branch", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin.getGit(), "user-branch", "user1", "user1@example.com", "commitx", null, null, false, new HashMap<String, File>() {{
             put( "file1UserBranch.txt", tempFile( "tempX" ) );
         }} ).execute();
 
@@ -1372,7 +1372,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final OutputStream aStream = provider.newOutputStream( path );
         aStream.write( "my cool content".getBytes() );
         aStream.close();
-        final RevCommit commit = fs.getGit()._log().setMaxCount( 1 ).call().iterator().next();
+        final RevCommit commit = ( (GitImpl) fs.getGit() )._log().setMaxCount( 1 ).call().iterator().next();
 
         final OutputStream bStream = provider.newOutputStream( path2 );
         bStream.write( "my cool content".getBytes() );
@@ -1387,7 +1387,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         provider.setAttribute( generalPath, SquashOption.SQUASH_ATTR, squashOption );
 
         int commitsCount = 0;
-        for ( RevCommit com : fs.getGit()._log().all().call() ) {
+        for ( RevCommit com : ( (GitImpl) fs.getGit() )._log().all().call() ) {
             commitsCount++;
             System.out.println( com.getName() + " - " + com.getFullMessage() );
         }
@@ -1409,7 +1409,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         aStream.write( "my cool content".getBytes() );
         aStream.close();
 
-        final List<RevCommit> commits = getCommitsFromBranch( fs.getGit(), "develop" );
+        final List<RevCommit> commits = getCommitsFromBranch( (GitImpl) fs.getGit(), "develop" );
 
         final OutputStream bStream = provider.newOutputStream( path2 );
         bStream.write( "my cool content".getBytes() );
@@ -1502,7 +1502,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         };
     }
 
-    private List<RevCommit> getCommitsFromBranch( final Git origin,
+    private List<RevCommit> getCommitsFromBranch( final GitImpl origin,
                                                   String branch ) throws GitAPIException, MissingObjectException, IncorrectObjectTypeException {
         List<RevCommit> commits = new ArrayList<>();
         final ObjectId id = new GetRef( origin.getRepository(), branch ).execute().getObjectId();
