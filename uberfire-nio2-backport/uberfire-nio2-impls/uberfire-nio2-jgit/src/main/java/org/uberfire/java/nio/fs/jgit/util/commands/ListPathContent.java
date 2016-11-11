@@ -24,9 +24,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.uberfire.java.nio.fs.jgit.util.PathInfo;
-
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
+import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 
 public class ListPathContent {
 
@@ -44,9 +42,9 @@ public class ListPathContent {
 
     public List<PathInfo> execute() throws IOException {
 
-        final String gitPath = normalizePath( path );
+        final String gitPath = PathUtil.normalize( path );
         final List<PathInfo> result = new ArrayList<>();
-        final ObjectId tree = getTreeRefObjectId( git.getRepository(), branchName );
+        final ObjectId tree = new GetTreeFromRef( git.getRepository(), branchName ).execute();
         if ( tree == null ) {
             return result;
         }

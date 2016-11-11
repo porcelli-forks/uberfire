@@ -34,7 +34,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static java.util.stream.StreamSupport.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
+import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.getLastCommit;
 
 /**
  * Implements the Git Squash command. It needs the repository were he is going to make the squash,
@@ -42,7 +42,7 @@ import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
  * It return an Empty Optional because is not necessary to return anything.
  * It throws a {@link GitException} if something bad happens.
  */
-public class Squash {
+public class Squash extends BaseRefUpdateCommand {
 
     private final String branch;
     private final Git git;

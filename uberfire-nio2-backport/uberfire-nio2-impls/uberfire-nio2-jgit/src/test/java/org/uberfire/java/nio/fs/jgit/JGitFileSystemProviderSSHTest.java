@@ -33,7 +33,6 @@ import org.uberfire.java.nio.security.FileSystemAuthorizer;
 import org.uberfire.java.nio.security.FileSystemUser;
 
 import static org.junit.Assert.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitFileSystemProviderSSHTest extends AbstractTestInfra {
 

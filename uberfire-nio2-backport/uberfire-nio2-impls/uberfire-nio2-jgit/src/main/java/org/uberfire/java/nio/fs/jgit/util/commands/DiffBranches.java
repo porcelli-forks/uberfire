@@ -31,7 +31,6 @@ import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.patch.FileHeader;
 import org.uberfire.java.nio.base.FileDiff;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static org.uberfire.commons.validation.PortablePreconditions.*;
@@ -59,10 +58,9 @@ public class DiffBranches {
     public List<FileDiff> execute() {
         final List<FileDiff> diffs = new ArrayList<>();
 
-
         final List<DiffEntry> result = new ListDiffs( repository,
-                                                      JGitUtil.getTreeRefObjectId( repository, this.branchA ).toObjectId(),
-                                                      JGitUtil.getTreeRefObjectId( repository, this.branchB ).toObjectId() ).execute();
+                                                      new GetTreeFromRef( repository, this.branchA ).execute(),
+                                                      new GetTreeFromRef( repository, this.branchB ).execute() ).execute();
 
         final DiffFormatter formatter = createFormatter();
 

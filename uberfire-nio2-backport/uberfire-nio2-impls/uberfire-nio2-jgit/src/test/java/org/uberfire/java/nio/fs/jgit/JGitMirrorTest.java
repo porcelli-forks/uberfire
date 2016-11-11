@@ -33,7 +33,6 @@ import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListRefs;
 
 import static org.fest.assertions.api.Assertions.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitMirrorTest extends AbstractTestInfra {
 

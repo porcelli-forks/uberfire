@@ -28,7 +28,7 @@ import org.eclipse.jgit.lib.ObjectInserter;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
-import org.uberfire.java.nio.fs.jgit.util.CommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitContent;
 
 abstract class BaseCreateCommitTree<T extends CommitContent> {
 

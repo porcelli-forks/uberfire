@@ -33,7 +33,7 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
@@ -41,8 +41,7 @@ import org.uberfire.java.nio.fs.jgit.util.commands.Squash;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static org.fest.assertions.api.Assertions.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
-import static org.uberfire.java.nio.fs.jgit.util.PathType.*;
+import static org.uberfire.java.nio.fs.jgit.util.model.PathType.*;
 
 public class JGitSquashingTest extends AbstractTestInfra {
 
@@ -91,11 +90,11 @@ public class JGitSquashingTest extends AbstractTestInfra {
         }
         assertThat( commitsCount ).isEqualTo( 5 );
 
-        assertThat( JGitUtil.getPathInfo( origin, "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
-        assertThat( JGitUtil.getPathInfo( origin, "master", "path/to/file1.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( JGitUtil.getPathInfo( origin, "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( JGitUtil.getPathInfo( origin, "master", "path/to/file3.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( JGitUtil.getPathInfo( origin, "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "path/to/file1.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "path/to/file3.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
 
         logger.info( "Squashing from " + secondCommit.getName() + "  to HEAD" );
         new Squash( origin, "master", secondCommit.getName(), "squashed message" ).execute();
@@ -195,11 +194,11 @@ public class JGitSquashingTest extends AbstractTestInfra {
             logger.info( ">>> Origin Commit: " + commit.getFullMessage() + " - " + commit.toString() );
         }
 
-        assertThat( JGitUtil.getPathInfo( origin, "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
-        assertThat( JGitUtil.getPathInfo( origin, "master", "file1.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( JGitUtil.getPathInfo( origin, "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( JGitUtil.getPathInfo( origin, "master", "path/file3.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( JGitUtil.getPathInfo( origin, "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "file1.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "path/file3.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( RetryUtil.getPathInfo( origin, "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
 
         logger.info( "Squashing from " + secondCommit.getName() + "  to HEAD" );
         new Squash( origin, "master", secondCommit.getName(), "squashed message" ).execute();

@@ -24,7 +24,7 @@ import org.eclipse.jgit.dircache.DirCacheEditor;
 import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
-import org.uberfire.java.nio.fs.jgit.util.RevertCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.RevertCommitContent;
 
 public class CreateRevertCommitTree extends BaseCreateCommitTree<RevertCommitContent> {
 

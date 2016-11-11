@@ -27,7 +27,7 @@ import org.eclipse.jgit.dircache.DirCacheEditor;
 import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
-import org.uberfire.java.nio.fs.jgit.util.MoveCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.MoveCommitContent;
 
 public class CreateMoveCommitTree extends BaseCreateCommitTree<MoveCommitContent> {
 

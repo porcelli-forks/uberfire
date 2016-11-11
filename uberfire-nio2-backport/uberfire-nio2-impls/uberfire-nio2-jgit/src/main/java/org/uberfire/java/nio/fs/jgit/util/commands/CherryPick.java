@@ -29,12 +29,10 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.uberfire.java.nio.IOException;
 
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
-
 /**
  * TODO: update me
  */
-public class CherryPick {
+public class CherryPick extends BaseRefUpdateCommand {
 
     private final Repository repo;
     private final String targetBranch;

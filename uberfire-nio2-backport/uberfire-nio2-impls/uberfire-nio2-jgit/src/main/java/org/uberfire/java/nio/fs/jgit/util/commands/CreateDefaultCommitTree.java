@@ -36,10 +36,9 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.uberfire.commons.data.Pair;
-import org.uberfire.java.nio.fs.jgit.util.DefaultCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.DefaultCommitContent;
 
 import static org.eclipse.jgit.lib.FileMode.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class CreateDefaultCommitTree extends BaseCreateCommitTree<DefaultCommitContent> {
 
@@ -59,7 +58,7 @@ public class CreateDefaultCommitTree extends BaseCreateCommitTree<DefaultCommitC
 
         try {
             for ( final Map.Entry<String, File> pathAndContent : content.entrySet() ) {
-                final String gPath = normalizePath( pathAndContent.getKey() );
+                final String gPath = PathUtil.normalize( pathAndContent.getKey() );
                 if ( pathAndContent.getValue() == null ) {
                     path2delete.addAll( searchPathsToDelete( git, headId, gPath ) );
                 } else {

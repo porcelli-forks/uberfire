@@ -142,15 +142,16 @@ import org.uberfire.java.nio.fs.jgit.daemon.git.Daemon;
 import org.uberfire.java.nio.fs.jgit.daemon.git.DaemonClient;
 import org.uberfire.java.nio.fs.jgit.daemon.ssh.BaseGitCommand;
 import org.uberfire.java.nio.fs.jgit.daemon.ssh.GitSSHService;
-import org.uberfire.java.nio.fs.jgit.util.CommitContent;
-import org.uberfire.java.nio.fs.jgit.util.CopyCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.DefaultCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
-import org.uberfire.java.nio.fs.jgit.util.MoveCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.PathInfo;
-import org.uberfire.java.nio.fs.jgit.util.PathType;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
+import org.uberfire.java.nio.fs.jgit.util.model.CopyCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.DefaultCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
+import org.uberfire.java.nio.fs.jgit.util.model.MoveCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
+import org.uberfire.java.nio.fs.jgit.util.model.PathType;
 import org.uberfire.java.nio.fs.jgit.util.ProxyAuthenticator;
-import org.uberfire.java.nio.fs.jgit.util.RevertCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.RevertCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.commands.CherryPick;
 import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
@@ -162,8 +163,10 @@ import org.uberfire.java.nio.fs.jgit.util.commands.Fetch;
 import org.uberfire.java.nio.fs.jgit.util.commands.Fork;
 import org.uberfire.java.nio.fs.jgit.util.commands.GarbageCollector;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
+import org.uberfire.java.nio.fs.jgit.util.commands.GetTreeFromRef;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListDiffs;
 import org.uberfire.java.nio.fs.jgit.util.commands.Merge;
+import org.uberfire.java.nio.fs.jgit.util.commands.PathUtil;
 import org.uberfire.java.nio.fs.jgit.util.commands.Push;
 import org.uberfire.java.nio.fs.jgit.util.commands.Squash;
 import org.uberfire.java.nio.fs.jgit.util.commands.SyncRemote;
@@ -179,8 +182,8 @@ import static org.uberfire.commons.data.Pair.*;
 import static org.uberfire.commons.validation.PortablePreconditions.*;
 import static org.uberfire.java.nio.base.dotfiles.DotFileUtils.*;
 import static org.uberfire.java.nio.file.StandardOpenOption.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
-import static org.uberfire.java.nio.fs.jgit.util.PathType.*;
+import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.*;
+import static org.uberfire.java.nio.fs.jgit.util.model.PathType.*;
 
 public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                                                Disposable {
@@ -574,7 +577,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 }
 
                 for ( final ReceiveCommand command : commands2 ) {
-                    final RevCommit lastCommit = JGitUtil.getLastCommit( fs.getGit(), command.getRefName() );
+                    final RevCommit lastCommit = RetryUtil.getLastCommit( fs.getGit(), command.getRefName() );
                     oldTreeRefs.put( command.getRefName(), lastCommit );
                 }
             } );
@@ -583,7 +586,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 fs.unlock();
                 final String userName = req.getUser().getName();
                 for ( Map.Entry<String, RevCommit> oldTreeRef : oldTreeRefs.entrySet() ) {
-                    final List<RevCommit> commits = JGitUtil.listCommits( fs.getGit(), oldTreeRef.getValue(), JGitUtil.getLastCommit( fs.getGit(), oldTreeRef.getKey() ) );
+                    final List<RevCommit> commits = RetryUtil.listCommits( fs.getGit(), oldTreeRef.getValue(), RetryUtil.getLastCommit( fs.getGit(), oldTreeRef.getKey() ) );
                     for ( final RevCommit revCommit : commits ) {
                         final RevTree parent = revCommit.getParentCount() > 0 ? revCommit.getParent( 0 ).getTree() : null;
                         notifyDiffs( fs,
@@ -852,7 +855,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         if ( hasSyncFlag( uri ) ) {
             try {
                 final String treeRef = "master";
-                final ObjectId oldHead = JGitUtil.getTreeRefObjectId( fileSystem.getGit().getRepository(), treeRef );
+                final ObjectId oldHead = new GetTreeFromRef( fileSystem.getGit().getRepository(), treeRef ).execute();
                 final Map<String, String> params = getQueryParams( uri );
                 try {
                     fileSystem.lock();
@@ -862,7 +865,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 } finally {
                     fileSystem.unlock();
                 }
-                final ObjectId newHead = JGitUtil.getTreeRefObjectId( fileSystem.getGit().getRepository(), treeRef );
+                final ObjectId newHead = new GetTreeFromRef( fileSystem.getGit().getRepository(), treeRef ).execute();
                 notifyDiffs( fileSystem, treeRef, "<system>", "<system>", "", oldHead, newHead );
             } catch ( final Exception ex ) {
                 throw new IOException( "Failed to sync repository.", ex );
@@ -1724,7 +1727,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                             final CopyOption... options ) {
         final Map<String, String> result = new HashMap<String, String>( fromTo.size() );
         for ( final Map.Entry<JGitPathImpl, JGitPathImpl> fromToEntry : fromTo.entrySet() ) {
-            result.put( normalizePath( fromToEntry.getKey().getPath() ), normalizePath( fromToEntry.getValue().getPath() ) );
+            result.put( PathUtil.normalize( fromToEntry.getKey().getPath() ), PathUtil.normalize( fromToEntry.getValue().getPath() ) );
         }
         commit( source, buildCommitInfo( "moving from {" + source.getPath() + "} to {" + target.getPath() + "}", Arrays.asList( options ) ), new MoveCommitContent( result ) );
     }
@@ -1735,7 +1738,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                             final CopyOption... options ) {
         final Map<String, String> result = new HashMap<String, String>( sourceDest.size() );
         for ( final Map.Entry<JGitPathImpl, JGitPathImpl> sourceDestEntry : sourceDest.entrySet() ) {
-            result.put( normalizePath( sourceDestEntry.getKey().getPath() ), normalizePath( sourceDestEntry.getValue().getPath() ) );
+            result.put( PathUtil.normalize( sourceDestEntry.getKey().getPath() ), PathUtil.normalize( sourceDestEntry.getValue().getPath() ) );
         }
         commit( source, buildCommitInfo( "copy from {" + source.getPath() + "} to {" + target.getPath() + "}", Arrays.asList( options ) ), new CopyCommitContent( result ) );
     }
@@ -2210,7 +2213,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             final boolean batchState = fileSystem.isOnBatch();
             final boolean amend = batchState && fileSystem.isHadCommitOnBatchState( path.getRoot() );
 
-            final ObjectId oldHead = JGitUtil.getTreeRefObjectId( path.getFileSystem().getGit().getRepository(), branchName );
+            final ObjectId oldHead = new GetTreeFromRef( path.getFileSystem().getGit().getRepository(), branchName ).execute();
 
             final boolean hasCommit;
             if ( batchState && fileSystem.getBatchCommitInfo() != null ) {
@@ -2228,7 +2231,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                     }
                 }
 
-                final ObjectId newHead = JGitUtil.getTreeRefObjectId( path.getFileSystem().getGit().getRepository(), branchName );
+                final ObjectId newHead = new GetTreeFromRef( path.getFileSystem().getGit().getRepository(), branchName ).execute();
 
                 postCommitHook( git.getRepository() );
 
@@ -2268,7 +2271,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         synchronized ( oldHeadsOfPendingDiffsLock ) {
             for ( Map.Entry<JGitFileSystem, Map<String, NotificationModel>> jGitFileSystemMapEntry : oldHeadsOfPendingDiffs.entrySet() ) {
                 for ( Map.Entry<String, NotificationModel> branchNameNotificationModelEntry : jGitFileSystemMapEntry.getValue().entrySet() ) {
-                    final ObjectId newHead = JGitUtil.getTreeRefObjectId( jGitFileSystemMapEntry.getKey().getGit().getRepository(), branchNameNotificationModelEntry.getKey() );
+                    final ObjectId newHead = new GetTreeFromRef( jGitFileSystemMapEntry.getKey().getGit().getRepository(), branchNameNotificationModelEntry.getKey() ).execute();
                     try {
                         notifyDiffs( jGitFileSystemMapEntry.getKey(),
                                      branchNameNotificationModelEntry.getKey(),

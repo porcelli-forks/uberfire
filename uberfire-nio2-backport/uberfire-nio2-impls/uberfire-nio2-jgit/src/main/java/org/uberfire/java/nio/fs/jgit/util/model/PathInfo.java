@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.uberfire.java.nio.fs.jgit.util;
+package org.uberfire.java.nio.fs.jgit.util.model;
 
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;

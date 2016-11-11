@@ -63,9 +63,9 @@ import org.uberfire.java.nio.file.WatchService;
 import org.uberfire.java.nio.file.attribute.BasicFileAttributeView;
 import org.uberfire.java.nio.file.attribute.BasicFileAttributes;
 import org.uberfire.java.nio.file.attribute.FileTime;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
-import org.uberfire.java.nio.fs.jgit.util.PathInfo;
-import org.uberfire.java.nio.fs.jgit.util.PathType;
+import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
+import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
+import org.uberfire.java.nio.fs.jgit.util.model.PathType;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
@@ -74,7 +74,6 @@ import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 import static org.fest.assertions.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.uberfire.java.nio.file.StandardDeleteOption.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
@@ -829,12 +828,12 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final JGitPathImpl path = (JGitPathImpl) provider.getPath( URI.create( "git://master@xcreatedir-test-repo/some/path/to/" ) );
 
-        final PathInfo result = JGitUtil.getPathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
+        final PathInfo result = RetryUtil.getPathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
         assertThat( result.getPathType() ).isEqualTo( PathType.NOT_FOUND );
 
         provider.createDirectory( path );
 
-        final PathInfo resultAfter = JGitUtil.getPathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
+        final PathInfo resultAfter = RetryUtil.getPathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
         assertThat( resultAfter.getPathType() ).isEqualTo( PathType.DIRECTORY );
 
         final Path gitkeepPath = path.resolve( ".gitkeep" );

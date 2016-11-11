@@ -41,10 +41,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.uberfire.java.nio.fs.jgit.util.DefaultCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
+import org.uberfire.java.nio.fs.jgit.util.model.DefaultCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
-
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public abstract class AbstractTestInfra {
 

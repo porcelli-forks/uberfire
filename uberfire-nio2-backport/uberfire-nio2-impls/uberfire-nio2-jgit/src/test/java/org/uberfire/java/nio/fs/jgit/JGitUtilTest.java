@@ -30,18 +30,18 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 import org.junit.Test;
 import org.uberfire.java.nio.base.version.VersionAttributes;
 import org.uberfire.java.nio.base.version.VersionRecord;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
 import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
+import org.uberfire.java.nio.fs.jgit.util.commands.GetTreeFromRef;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListDiffs;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListRefs;
 
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.uberfire.java.nio.fs.jgit.util.PathType.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
+import static org.uberfire.java.nio.fs.jgit.util.model.PathType.*;
 
 public class JGitUtilTest extends AbstractTestInfra {
 
@@ -111,9 +111,9 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault() ).execute().get();
 
-        assertThat( JGitUtil.getPathInfo( git, "user_branch", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
-        assertThat( JGitUtil.getPathInfo( git, "user_branch", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( JGitUtil.getPathInfo( git, "user_branch", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
+        assertThat( RetryUtil.getPathInfo( git, "user_branch", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
+        assertThat( RetryUtil.getPathInfo( git, "user_branch", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( RetryUtil.getPathInfo( git, "user_branch", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
     }
 
     @Test
@@ -135,9 +135,9 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault() ).execute().get();
 
-        assertThat( JGitUtil.getPathInfo( git, "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
-        assertThat( JGitUtil.getPathInfo( git, "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( JGitUtil.getPathInfo( git, "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
+        assertThat( RetryUtil.getPathInfo( git, "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
+        assertThat( RetryUtil.getPathInfo( git, "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( RetryUtil.getPathInfo( git, "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
     }
 
     @Test
@@ -164,12 +164,12 @@ public class JGitUtilTest extends AbstractTestInfra {
         JGitFileSystem jGitFileSystem = mock( JGitFileSystem.class );
         when( jGitFileSystem.getGit() ).thenReturn( git );
 
-        final JGitPathImpl path = mock(JGitPathImpl.class);
+        final JGitPathImpl path = mock( JGitPathImpl.class );
         when( path.getFileSystem() ).thenReturn( jGitFileSystem );
         when( path.getRefTree() ).thenReturn( "master" );
         when( path.getPath() ).thenReturn( "path/to/file2.txt" );
 
-        final VersionAttributes versionAttributes = new JGitVersionAttributeView(path).readAttributes();
+        final VersionAttributes versionAttributes = new JGitVersionAttributeView( path ).readAttributes();
 
         List<VersionRecord> records = versionAttributes.history().records();
         assertEquals( "commit 1", records.get( 0 ).comment() );
@@ -186,13 +186,13 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final Git git = new CreateRepository( gitFolder ).execute().get();
 
-        final ObjectId oldHead = JGitUtil.getTreeRefObjectId( git.getRepository(), "master" );
+        final ObjectId oldHead = new GetTreeFromRef( git.getRepository(), "master" ).execute();
 
         new Commit( git, "master", "name", "name@example.com", "commit 1", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file.txt", tempFile( "who" ) );
         }} ).execute();
 
-        final ObjectId newHead = JGitUtil.getTreeRefObjectId( git.getRepository(), "master" );
+        final ObjectId newHead = new GetTreeFromRef( git.getRepository(), "master" ).execute();
 
         List<DiffEntry> diff = new ListDiffs( git.getRepository(), oldHead, newHead ).execute();
         assertNotNull( diff );

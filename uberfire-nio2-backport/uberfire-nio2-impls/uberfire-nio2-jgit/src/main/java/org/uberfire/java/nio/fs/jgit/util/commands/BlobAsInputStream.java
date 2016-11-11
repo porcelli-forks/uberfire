@@ -29,8 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.file.NoSuchFileException;
 
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
-
 public class BlobAsInputStream {
 
     private static final Logger LOG = LoggerFactory.getLogger( BlobAsInputStream.class );
@@ -49,7 +47,7 @@ public class BlobAsInputStream {
 
     public Optional<InputStream> execute() {
         try ( final TreeWalk tw = new TreeWalk( repository ) ) {
-            final ObjectId tree = getTreeRefObjectId( repository, treeRef );
+            final ObjectId tree = new GetTreeFromRef( repository, treeRef ).execute();
             tw.setFilter( PathFilter.create( path ) );
             tw.reset( tree );
             while ( tw.next() ) {
