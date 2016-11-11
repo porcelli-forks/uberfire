@@ -27,7 +27,7 @@ import org.eclipse.jgit.diff.DiffEntry;
 import org.junit.Test;
 import org.uberfire.java.nio.base.options.MergeCopyOption;
 import org.uberfire.java.nio.file.Path;
-import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.GetTreeFromRef;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListDiffs;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
@@ -73,8 +73,8 @@ public class JGitFileSystemProviderMergeTest extends AbstractTestInfra {
         final Git gitRepo = ( (JGitFileSystem) master.getFileSystem() ).getGit();
 
         final List<DiffEntry> result = new ListDiffs( gitRepo.getRepository(),
-                                                      JGitUtil.getTreeRefObjectId( gitRepo.getRepository(), "master" ).toObjectId(),
-                                                      JGitUtil.getTreeRefObjectId( gitRepo.getRepository(), "user_branch" ).toObjectId() ).execute();
+                                                      new GetTreeFromRef( gitRepo.getRepository(), "master" ).execute(),
+                                                      new GetTreeFromRef( gitRepo.getRepository(), "user_branch" ).execute() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
 
@@ -168,8 +168,8 @@ public class JGitFileSystemProviderMergeTest extends AbstractTestInfra {
 
         final Git gitRepo = ( (JGitFileSystem) master.getFileSystem() ).getGit();
         final List<DiffEntry> result = new ListDiffs( gitRepo.getRepository(),
-                                                      JGitUtil.getTreeRefObjectId( gitRepo.getRepository(), "master" ).toObjectId(),
-                                                      JGitUtil.getTreeRefObjectId( gitRepo.getRepository(), "user_branch" ).toObjectId() ).execute();
+                                                      new GetTreeFromRef( gitRepo.getRepository(), "master" ).execute(),
+                                                      new GetTreeFromRef( gitRepo.getRepository(), "user_branch" ).execute() ).execute();
 
         assertThat( result.size() ).isEqualTo( 0 );
 

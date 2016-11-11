@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.uberfire.java.nio.fs.jgit.util;
+package org.uberfire.java.nio.fs.jgit.util.model;
 
 /**
  * TODO: update me

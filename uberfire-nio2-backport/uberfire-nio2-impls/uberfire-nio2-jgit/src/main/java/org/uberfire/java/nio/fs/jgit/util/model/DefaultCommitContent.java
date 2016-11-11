@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-package org.uberfire.java.nio.fs.jgit.util;
+package org.uberfire.java.nio.fs.jgit.util.model;
 
-/**
- * TODO: update me
- */
-public final class ObjectResolver {
+import java.io.File;
+import java.util.Map;
 
-    private ObjectResolver() {
+public class DefaultCommitContent implements CommitContent {
+
+    private final Map<String, File> content;
+
+    public DefaultCommitContent( Map<String, File> content ) {
+        this.content = content;
     }
 
-
+    public Map<String, File> getContent() {
+        return content;
+    }
 }

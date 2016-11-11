@@ -31,20 +31,20 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.uberfire.java.nio.fs.jgit.CommitInfo;
-import org.uberfire.java.nio.fs.jgit.util.CommitContent;
-import org.uberfire.java.nio.fs.jgit.util.CopyCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.DefaultCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.MoveCommitContent;
-import org.uberfire.java.nio.fs.jgit.util.RevertCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.CopyCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.DefaultCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.MoveCommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.RevertCommitContent;
 
 import static java.util.Collections.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
+import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.*;
 
 /**
  * TODO: update me
  */
-public class Commit {
+public class Commit extends BaseRefUpdateCommand {
 
     private final Git git;
     private final String branchName;
@@ -147,11 +147,11 @@ public class Commit {
         return hadEffecitiveCommit;
     }
 
-    private static PersonIdent buildPersonIdent( final Git git,
-                                                 final String name,
-                                                 final String _email,
-                                                 final TimeZone timeZone,
-                                                 final Date when ) {
+    private PersonIdent buildPersonIdent( final Git git,
+                                          final String name,
+                                          final String _email,
+                                          final TimeZone timeZone,
+                                          final Date when ) {
         final TimeZone tz = timeZone == null ? TimeZone.getDefault() : timeZone;
         final String email = _email == null ? "" : _email;
 

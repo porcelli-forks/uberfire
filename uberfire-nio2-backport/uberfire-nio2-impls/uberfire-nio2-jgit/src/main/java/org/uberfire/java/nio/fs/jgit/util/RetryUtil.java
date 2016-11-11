@@ -16,45 +16,29 @@
 
 package org.uberfire.java.nio.fs.jgit.util;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.text.MessageFormat;
 import java.util.List;
 
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
-import org.eclipse.jgit.api.errors.JGitInternalException;
-import org.eclipse.jgit.internal.JGitText;
-import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.RefUpdate;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.commons.config.ConfigProperties;
-import org.uberfire.java.nio.base.FileTimeImpl;
-import org.uberfire.java.nio.base.attributes.HiddenAttributes;
-import org.uberfire.java.nio.base.attributes.HiddenAttributesImpl;
 import org.uberfire.java.nio.file.NoSuchFileException;
-import org.uberfire.java.nio.file.attribute.BasicFileAttributes;
-import org.uberfire.java.nio.file.attribute.FileTime;
-import org.uberfire.java.nio.fs.jgit.JGitFileSystem;
-import org.uberfire.java.nio.fs.jgit.daemon.filters.HiddenBranchRefFilter;
 import org.uberfire.java.nio.fs.jgit.util.commands.BlobAsInputStream;
-import org.uberfire.java.nio.fs.jgit.util.commands.GetFirstCommit;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetLastCommit;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetPathInfo;
-import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListCommits;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListPathContent;
+import org.uberfire.java.nio.fs.jgit.util.commands.PathUtil;
+import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 
 import static org.uberfire.commons.validation.Preconditions.*;
 
-public final class JGitUtil {
+public final class RetryUtil {
 
-    private static final Logger LOG = LoggerFactory.getLogger( JGitUtil.class );
+    private static final Logger LOG = LoggerFactory.getLogger( RetryUtil.class );
     private static final String DEFAULT_JGIT_RETRY_SLEEP_TIME = "50";
     private static int JGIT_RETRY_TIMES = initRetryValue();
     private static final int JGIT_RETRY_SLEEP_TIME = initSleepTime();
@@ -85,7 +69,7 @@ public final class JGitUtil {
         JGIT_RETRY_TIMES = retryTimes;
     }
 
-    private JGitUtil() {
+    private RetryUtil() {
     }
 
     public static InputStream resolveInputStream( final Git git,
@@ -98,7 +82,7 @@ public final class JGitUtil {
         return retryIfNeeded( NoSuchFileException.class,
                               () -> new BlobAsInputStream( git.getRepository(),
                                                            treeRef,
-                                                           normalizePath( path ) ).execute().get() );
+                                                           PathUtil.normalize( path ) ).execute().get() );
     }
 
     public static RevCommit getLastCommit( final Git git,
@@ -158,72 +142,6 @@ public final class JGitUtil {
         checkNotEmpty( "branchName", branchName );
 
         return retryIfNeeded( RuntimeException.class, () -> new ListPathContent( git, branchName, path ).execute() );
-    }
-
-    public static String normalizePath( final String path ) {
-
-        if ( path.equals( "/" ) ) {
-            return "";
-        }
-
-        final boolean startsWith = path.startsWith( "/" );
-        final boolean endsWith = path.endsWith( "/" );
-        if ( startsWith && endsWith ) {
-            return path.substring( 1, path.length() - 1 );
-        }
-        if ( startsWith ) {
-            return path.substring( 1 );
-        }
-        if ( endsWith ) {
-            return path.substring( 0, path.length() - 1 );
-        }
-        return path;
-    }
-
-    public static ObjectId getTreeRefObjectId( final Repository repo,
-                                               final String treeRef ) {
-        try {
-            final RevCommit commit = new GetLastCommit( repo, treeRef ).execute();
-            if ( commit == null ) {
-                return null;
-            }
-            return commit.getTree().getId();
-        } catch ( java.io.IOException ex ) {
-            throw new RuntimeException( ex );
-        }
-    }
-
-    public static void refUpdate( final Repository repository,
-                                  final String branchName,
-                                  final ObjectId headId,
-                                  final RevCommit revCommit,
-                                  final String refLogPrefix ) throws java.io.IOException, ConcurrentRefUpdateException {
-
-        final RefUpdate ru = repository.updateRef( Constants.R_HEADS + branchName );
-        if ( headId == null ) {
-            ru.setExpectedOldObjectId( ObjectId.zeroId() );
-        } else {
-            ru.setExpectedOldObjectId( headId );
-        }
-        ru.setNewObjectId( revCommit.getId() );
-        ru.setRefLogMessage( refLogPrefix + revCommit.getShortMessage(), false );
-        forceUpdate( ru, revCommit.getId() );
-    }
-
-    public static void forceUpdate( final RefUpdate ru,
-                                    final ObjectId id ) throws java.io.IOException, ConcurrentRefUpdateException {
-        final RefUpdate.Result rc = ru.forceUpdate();
-        switch ( rc ) {
-            case NEW:
-            case FORCED:
-            case FAST_FORWARD:
-                break;
-            case REJECTED:
-            case LOCK_FAILURE:
-                throw new ConcurrentRefUpdateException( JGitText.get().couldNotLockHEAD, ru.getRef(), rc );
-            default:
-                throw new JGitInternalException( MessageFormat.format( JGitText.get().updatingRefFailed, Constants.HEAD, id.toString(), rc ) );
-        }
     }
 
 }
