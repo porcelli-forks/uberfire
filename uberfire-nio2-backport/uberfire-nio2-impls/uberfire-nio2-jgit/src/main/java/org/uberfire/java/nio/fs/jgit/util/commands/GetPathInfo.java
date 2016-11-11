@@ -18,11 +18,11 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import java.io.IOException;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 import org.uberfire.java.nio.fs.jgit.util.model.PathType;
 
@@ -50,7 +50,7 @@ public class GetPathInfo {
             return new PathInfo( null, gitPath, PathType.DIRECTORY );
         }
 
-        final ObjectId tree = new GetTreeFromRef( git.getRepository(), branchName ).execute();
+        final ObjectId tree = git.getTreeFromRef(branchName);
         if ( tree == null ) {
             return new PathInfo( null, gitPath, PathType.NOT_FOUND );
         }

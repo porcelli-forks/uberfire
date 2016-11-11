@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.util.FileUtils;
@@ -41,6 +40,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
 import org.uberfire.java.nio.fs.jgit.util.model.DefaultCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
@@ -103,7 +103,7 @@ public abstract class AbstractTestInfra {
 
     protected Git setupGit( final File tempDir ) throws IOException, GitAPIException {
 
-        final Git git = Git.init().setBare( true ).setDirectory( tempDir ).call();
+        final Git git = Git.createRepository( tempDir );
 
         new Commit( git, "master", new CommitInfo( null, "name", "name@example.com", "cool1", null, null ), false, null, new DefaultCommitContent( new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "content" ) );

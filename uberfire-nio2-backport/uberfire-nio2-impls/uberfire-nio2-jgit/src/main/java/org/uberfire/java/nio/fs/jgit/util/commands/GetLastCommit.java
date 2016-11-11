@@ -19,25 +19,25 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.io.IOException;
 
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 /**
  * TODO: update me
  */
 public class GetLastCommit {
 
-    private final Repository repo;
+    private final Git git;
     private final Ref ref;
 
-    public GetLastCommit( final Repository repo,
+    public GetLastCommit( final Git git,
                           final String branchName ) {
-        this( repo, new GetRef( repo, branchName ).execute() );
+        this( git, git.getRef( branchName ) );
     }
 
-    public GetLastCommit( final Repository repo,
+    public GetLastCommit( final Git git,
                           final Ref ref ) {
-        this.repo = repo;
+        this.git = git;
         this.ref = ref;
     }
 
@@ -46,10 +46,9 @@ public class GetLastCommit {
             if ( ref == null ) {
                 return null;
             }
-            return new ResolveRevCommit( repo, ref.getTarget().getObjectId() ).execute();
+            return git.resolveRevCommit( ref.getTarget().getObjectId() );
         } catch ( final Exception ex ) {
             throw ex;
         }
     }
-
 }

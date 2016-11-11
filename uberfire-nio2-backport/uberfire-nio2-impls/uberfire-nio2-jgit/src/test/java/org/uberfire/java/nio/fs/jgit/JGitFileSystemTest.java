@@ -19,7 +19,6 @@ package org.uberfire.java.nio.fs.jgit;
 import java.io.File;
 import java.io.IOException;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
@@ -27,6 +26,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.uberfire.java.nio.file.FileStore;
 import org.uberfire.java.nio.file.Path;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 import static org.fest.assertions.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -60,7 +60,7 @@ public class JGitFileSystemTest extends AbstractTestInfra {
         final JGitFileSystemProvider fsProvider = mock( JGitFileSystemProvider.class );
 
         final File tempDir = createTempDirectory();
-        final Git git = Git.cloneRepository().setNoCheckout( false ).setBare( true ).setCloneAllBranches( true ).setURI( setupGit().getRepository().getDirectory().toString() ).setDirectory( tempDir ).call();
+        final Git git = new Git( Git._cloneRepository().setNoCheckout( false ).setBare( true ).setCloneAllBranches( true ).setURI( setupGit().getRepository().getDirectory().toString() ).setDirectory( tempDir ).call() );
 
         final JGitFileSystem fileSystem = new JGitFileSystem( fsProvider, null, git, "my-repo", CredentialsProvider.getDefault() );
 

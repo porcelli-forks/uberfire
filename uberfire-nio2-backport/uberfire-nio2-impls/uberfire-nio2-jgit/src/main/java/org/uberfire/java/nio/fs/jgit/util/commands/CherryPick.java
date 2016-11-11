@@ -19,54 +19,51 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.text.MessageFormat;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.eclipse.jgit.api.errors.MultipleParentsNotAllowedException;
 import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.uberfire.java.nio.IOException;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 /**
  * TODO: update me
  */
 public class CherryPick extends BaseRefUpdateCommand {
 
-    private final Repository repo;
+    private final Git git;
     private final String targetBranch;
     private final String[] commits;
 
-    public CherryPick( final Repository repo,
+    public CherryPick( final Git git,
                        final String targetBranch,
                        final String... commits ) {
-        this.repo = repo;
+        this.git = git;
         this.targetBranch = targetBranch;
         this.commits = commits;
     }
 
     public void execute() {
-        final Git git = new Git( repo );
-
         RevCommit newHead = null;
 
-        final List<ObjectId> commits = new ResolveObjectIds( git, this.commits ).execute();
+        final List<ObjectId> commits = git.resolveObjectIds( this.commits );
         if ( commits.size() != this.commits.length ) {
             throw new IOException( "Couldn't resolve some commits." );
         }
 
-        final Ref headRef = new GetRef( git.getRepository(), targetBranch ).execute();
+        final Ref headRef = git.getRef( targetBranch );
         if ( headRef == null ) {
             throw new IOException( "Branch not found." );
         }
 
         try {
-            newHead = new ResolveRevCommit( repo, headRef.getObjectId() ).execute();
+            newHead = git.resolveRevCommit( headRef.getObjectId() );
 
             // loop through all refs to be cherry-picked
             for ( final ObjectId src : commits ) {
-                final RevCommit srcCommit = new ResolveRevCommit( repo, src ).execute();
+                final RevCommit srcCommit = git.resolveRevCommit( src );
 
                 // get the parent of the commit to cherry-pick
                 if ( srcCommit.getParentCount() != 1 ) {

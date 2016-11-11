@@ -18,12 +18,12 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import java.util.Optional;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.dircache.DirCacheEditor;
 import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.model.RevertCommitContent;
 
 public class CreateRevertCommitTree extends BaseCreateCommitTree<RevertCommitContent> {

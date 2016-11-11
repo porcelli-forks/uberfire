@@ -21,12 +21,12 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Optional;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
 import org.uberfire.commons.data.Pair;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 import static java.util.Collections.*;
 import static org.uberfire.commons.validation.PortablePreconditions.*;
@@ -49,10 +49,9 @@ public class Clone {
     }
 
     public Optional<Git> execute() throws InvalidRemoteException {
-        final Optional<Git> result = new CreateRepository( repoDir ).execute();
+        final Git git = Git.createRepository( repoDir );
 
-        if ( result.isPresent() ) {
-            final Git git = result.get();
+        if ( git != null ) {
             final Collection<RefSpec> refSpecList;
             if ( isMirror ) {
                 refSpecList = singletonList( new RefSpec( "+refs/*:refs/*" ) );
@@ -60,10 +59,7 @@ public class Clone {
                 refSpecList = emptyList();
             }
             final Pair<String, String> remote = Pair.newPair( "origin", origin );
-            new Fetch( git,
-                       credentialsProvider,
-                       remote,
-                       refSpecList ).execute();
+            git.fetch( credentialsProvider, remote, refSpecList );
 
             final StoredConfig config = git.getRepository().getConfig();
             config.setBoolean( "remote", "origin", "mirror", true );
@@ -73,7 +69,7 @@ public class Clone {
                 throw new RuntimeException( e );
             }
 
-            new SyncRemote( git, remote ).execute();
+            git.syncRemote( remote );
 
             return Optional.of( git );
         }

@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.dircache.DirCacheEditor;
 import org.eclipse.jgit.dircache.DirCacheEntry;
@@ -36,6 +35,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.uberfire.commons.data.Pair;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.model.DefaultCommitContent;
 
 import static org.eclipse.jgit.lib.FileMode.*;

@@ -20,40 +20,38 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 public class ListCommits {
 
-    private final Repository repo;
+    private final Git git;
     private final ObjectId startRange;
     private final ObjectId endRange;
     private final Ref ref;
     private final String path;
 
-    public ListCommits( final Repository repo,
+    public ListCommits( final Git git,
                         final Ref ref,
                         final String path ) {
-        this.repo = repo;
+        this.git = git;
         this.ref = ref;
         this.path = path;
         this.startRange = null;
         this.endRange = null;
     }
 
-    public ListCommits( final Repository repo,
+    public ListCommits( final Git git,
                         final ObjectId startRange,
                         final ObjectId endRange ) {
-        this.repo = repo;
+        this.git = git;
         this.startRange = startRange;
         this.endRange = endRange;
         this.ref = null;
@@ -80,14 +78,14 @@ public class ListCommits {
 
     private RevWalk buildWalk() throws GitAPIException, IncorrectObjectTypeException, MissingObjectException {
         if ( ref != null ) {
-            final LogCommand logCommand = new Git( repo ).log().add( ref.getObjectId() );
+            final LogCommand logCommand = git._log().add( ref.getObjectId() );
             if ( path != null && !path.isEmpty() ) {
                 logCommand.addPath( path );
             }
             return (RevWalk) logCommand.call();
         }
 
-        return new RevWalk( repo );
+        return new RevWalk( git.getRepository() );
     }
 
 }

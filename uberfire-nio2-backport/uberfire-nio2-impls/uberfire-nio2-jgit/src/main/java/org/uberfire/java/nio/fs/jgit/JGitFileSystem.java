@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.slf4j.Logger;
@@ -57,6 +56,7 @@ import org.uberfire.java.nio.file.WatchService;
 import org.uberfire.java.nio.file.Watchable;
 import org.uberfire.java.nio.file.attribute.UserPrincipalLookupService;
 import org.uberfire.java.nio.file.spi.FileSystemProvider;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListRefs;
 import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
 
@@ -169,7 +169,7 @@ public class JGitFileSystem implements FileSystem,
             }
 
             private void init() {
-                branches = new ListRefs( git.getRepository() ).execute().iterator();
+                branches = git.listRefs().iterator();
             }
 
             @Override

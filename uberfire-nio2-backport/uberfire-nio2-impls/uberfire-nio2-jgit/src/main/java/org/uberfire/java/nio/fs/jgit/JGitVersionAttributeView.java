@@ -34,10 +34,6 @@ import org.uberfire.java.nio.file.attribute.BasicFileAttributeView;
 import org.uberfire.java.nio.file.attribute.FileTime;
 import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 import org.uberfire.java.nio.fs.jgit.util.model.PathType;
-import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
-import org.uberfire.java.nio.fs.jgit.util.commands.ListCommits;
-
-import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.*;
 
 /**
  *
@@ -66,18 +62,18 @@ public class JGitVersionAttributeView extends VersionAttributeView<JGitPathImpl>
     private VersionAttributes buildAttrs( final JGitFileSystem fs,
                                           final String branchName,
                                           final String path ) {
-        final PathInfo pathInfo = getPathInfo( fs.getGit(), branchName, path );
+        final PathInfo pathInfo = fs.getGit().getPathInfo( branchName, path );
 
         if ( pathInfo == null || pathInfo.getPathType().equals( PathType.NOT_FOUND ) ) {
             throw new NoSuchFileException( path );
         }
 
-        final Ref refId = new GetRef( fs.getGit().getRepository(), branchName ).execute();
+        final Ref refId = fs.getGit().getRef( branchName );
         final List<VersionRecord> records = new ArrayList<>();
 
         if ( refId != null ) {
             try {
-                for ( final RevCommit commit : new ListCommits( fs.getGit().getRepository(), refId, pathInfo.getPath() ).execute() ) {
+                for ( final RevCommit commit : fs.getGit().listCommits( refId, pathInfo.getPath() ) ) {
                     records.add( new VersionRecord() {
                         @Override
                         public String id() {

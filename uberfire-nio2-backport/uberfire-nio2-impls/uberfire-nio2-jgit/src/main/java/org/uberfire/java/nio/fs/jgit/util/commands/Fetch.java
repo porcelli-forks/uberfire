@@ -19,11 +19,11 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.util.Collection;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
 import org.uberfire.commons.data.Pair;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 public class Fetch {
 
@@ -53,9 +53,9 @@ public class Fetch {
 
     public void execute() throws InvalidRemoteException {
         try {
-            final List<RefSpec> specs = new UpdateRemoteConfig( git, remote, refSpecs ).execute();
+            final List<RefSpec> specs = git.updateRemoteConfig( remote, refSpecs );
 
-            git.fetch()
+            git._fetch()
                     .setCredentialsProvider( credentialsProvider )
                     .setRemote( remote.getK1() )
                     .setRefSpecs( specs )

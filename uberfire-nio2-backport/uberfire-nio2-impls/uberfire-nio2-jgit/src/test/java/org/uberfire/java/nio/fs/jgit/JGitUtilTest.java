@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffEntry.ChangeType;
@@ -30,6 +29,7 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 import org.junit.Test;
 import org.uberfire.java.nio.base.version.VersionAttributes;
 import org.uberfire.java.nio.base.version.VersionRecord;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
 import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
@@ -111,9 +111,9 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault() ).execute().get();
 
-        assertThat( RetryUtil.getPathInfo( git, "user_branch", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
-        assertThat( RetryUtil.getPathInfo( git, "user_branch", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( RetryUtil.getPathInfo( git, "user_branch", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
+        assertThat( git.getPathInfo(  "user_branch", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
+        assertThat( git.getPathInfo(  "user_branch", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( git.getPathInfo(  "user_branch", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
     }
 
     @Test
@@ -135,9 +135,9 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault() ).execute().get();
 
-        assertThat( RetryUtil.getPathInfo( git, "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
-        assertThat( RetryUtil.getPathInfo( git, "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( RetryUtil.getPathInfo( git, "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
+        assertThat( git.getPathInfo(  "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
+        assertThat( git.getPathInfo(  "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( git.getPathInfo(  "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
     }
 
     @Test
@@ -186,15 +186,15 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final Git git = new CreateRepository( gitFolder ).execute().get();
 
-        final ObjectId oldHead = new GetTreeFromRef( git.getRepository(), "master" ).execute();
+        final ObjectId oldHead = new GetTreeFromRef( git, "master" ).execute();
 
         new Commit( git, "master", "name", "name@example.com", "commit 1", null, null, false, new HashMap<String, File>() {{
             put( "path/to/file.txt", tempFile( "who" ) );
         }} ).execute();
 
-        final ObjectId newHead = new GetTreeFromRef( git.getRepository(), "master" ).execute();
+        final ObjectId newHead = new GetTreeFromRef( git, "master" ).execute();
 
-        List<DiffEntry> diff = new ListDiffs( git.getRepository(), oldHead, newHead ).execute();
+        List<DiffEntry> diff = new ListDiffs( git, oldHead, newHead ).execute();
         assertNotNull( diff );
         assertFalse( diff.isEmpty() );
         assertEquals( ChangeType.ADD, diff.get( 0 ).getChangeType() );

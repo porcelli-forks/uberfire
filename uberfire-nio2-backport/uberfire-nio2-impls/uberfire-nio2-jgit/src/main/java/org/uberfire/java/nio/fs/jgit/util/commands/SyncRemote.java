@@ -22,11 +22,11 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.jgit.api.CreateBranchCommand;
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.lib.Ref;
 import org.uberfire.commons.data.Pair;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 public class SyncRemote {
 
@@ -41,7 +41,7 @@ public class SyncRemote {
 
     public Optional execute() throws InvalidRemoteException {
         try {
-            final List<Ref> branches = git.branchList().setListMode( ListBranchCommand.ListMode.ALL ).call();
+            final List<Ref> branches = git._branchList().setListMode( ListBranchCommand.ListMode.ALL ).call();
 
             final Set<String> remoteBranches = new HashSet<>();
             final Set<String> localBranches = new HashSet<>();
@@ -57,7 +57,7 @@ public class SyncRemote {
 
             for ( final String localBranch : localBranches ) {
                 if ( remoteBranches.contains( localBranch ) ) {
-                    git.branchCreate()
+                    git._branchCreate()
                             .setName( localBranch )
                             .setUpstreamMode( CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM )
                             .setStartPoint( remote.getK1() + "/" + localBranch )
@@ -69,7 +69,7 @@ public class SyncRemote {
             remoteBranches.removeAll( localBranches );
 
             for ( final String branch : remoteBranches ) {
-                git.branchCreate()
+                git._branchCreate()
                         .setName( branch )
                         .setUpstreamMode( CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM )
                         .setStartPoint( remote.getK1() + "/" + branch )

@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
@@ -63,6 +62,7 @@ import org.uberfire.java.nio.file.WatchService;
 import org.uberfire.java.nio.file.attribute.BasicFileAttributeView;
 import org.uberfire.java.nio.file.attribute.BasicFileAttributes;
 import org.uberfire.java.nio.file.attribute.FileTime;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
 import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 import org.uberfire.java.nio.fs.jgit.util.model.PathType;
@@ -354,7 +354,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         assertThat( provider.getFileSystem( URI.create( "git://master@new-repo-name" ) ) ).isEqualTo( fs );
         assertThat( provider.getFileSystem( URI.create( "git://branch@new-repo-name" ) ) ).isEqualTo( fs );
 
-        assertThat( provider.getFileSystem( URI.create( "git://branch@new-repo-name?fetch" ) ) ).isEqualTo( fs );
+        assertThat( provider.getFileSystem( URI.create( "git://branch@new-repo-name?_fetch" ) ) ).isEqualTo( fs );
     }
 
     @Test
@@ -828,12 +828,12 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
 
         final JGitPathImpl path = (JGitPathImpl) provider.getPath( URI.create( "git://master@xcreatedir-test-repo/some/path/to/" ) );
 
-        final PathInfo result = RetryUtil.getPathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
+        final PathInfo result = path.getFileSystem().getGit().getPathInfo( path.getRefTree(), path.getPath() );
         assertThat( result.getPathType() ).isEqualTo( PathType.NOT_FOUND );
 
         provider.createDirectory( path );
 
-        final PathInfo resultAfter = RetryUtil.getPathInfo( path.getFileSystem().getGit(), path.getRefTree(), path.getPath() );
+        final PathInfo resultAfter = path.getFileSystem().getGit().getPathInfo( path.getRefTree(), path.getPath() );
         assertThat( resultAfter.getPathType() ).isEqualTo( PathType.DIRECTORY );
 
         try {
@@ -1369,7 +1369,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final OutputStream aStream = provider.newOutputStream( path );
         aStream.write( "my cool content".getBytes() );
         aStream.close();
-        final RevCommit commit = fs.getGit().log().setMaxCount( 1 ).call().iterator().next();
+        final RevCommit commit = fs.getGit()._log().setMaxCount( 1 ).call().iterator().next();
 
         final OutputStream bStream = provider.newOutputStream( path2 );
         bStream.write( "my cool content".getBytes() );
@@ -1384,7 +1384,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         provider.setAttribute( generalPath, SquashOption.SQUASH_ATTR, squashOption );
 
         int commitsCount = 0;
-        for ( RevCommit com : fs.getGit().log().all().call() ) {
+        for ( RevCommit com : fs.getGit()._log().all().call() ) {
             commitsCount++;
             System.out.println( com.getName() + " - " + com.getFullMessage() );
         }
@@ -1503,7 +1503,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
                                                   String branch ) throws GitAPIException, MissingObjectException, IncorrectObjectTypeException {
         List<RevCommit> commits = new ArrayList<>();
         final ObjectId id = new GetRef( origin.getRepository(), branch ).execute().getObjectId();
-        for ( RevCommit commit : origin.log().add( id ).call() ) {
+        for ( RevCommit commit : origin._log().add( id ).call() ) {
             commits.add( commit );
         }
         return commits;

@@ -22,32 +22,32 @@ import java.util.Optional;
 
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.file.NoSuchFileException;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 public class BlobAsInputStream {
 
     private static final Logger LOG = LoggerFactory.getLogger( BlobAsInputStream.class );
 
-    private final Repository repository;
+    private final Git git;
     private final String treeRef;
     private final String path;
 
-    public BlobAsInputStream( final Repository repository,
+    public BlobAsInputStream( final Git git,
                               final String treeRef,
                               final String path ) {
-        this.repository = repository;
+        this.git = git;
         this.treeRef = treeRef;
         this.path = path;
     }
 
     public Optional<InputStream> execute() {
-        try ( final TreeWalk tw = new TreeWalk( repository ) ) {
-            final ObjectId tree = new GetTreeFromRef( repository, treeRef ).execute();
+        try ( final TreeWalk tw = new TreeWalk( git.getRepository() ) ) {
+            final ObjectId tree = git.getTreeFromRef( treeRef );
             tw.setFilter( PathFilter.create( path ) );
             tw.reset( tree );
             while ( tw.next() ) {
@@ -55,7 +55,7 @@ public class BlobAsInputStream {
                     tw.enterSubtree();
                     continue;
                 }
-                return Optional.of( new ByteArrayInputStream( repository.open( tw.getObjectId( 0 ), Constants.OBJ_BLOB ).getBytes() ) );
+                return Optional.of( new ByteArrayInputStream( git.getRepository().open( tw.getObjectId( 0 ), Constants.OBJ_BLOB ).getBytes() ) );
             }
         } catch ( final Throwable t ) {
             LOG.debug( "Unexpected exception, this will trigger a NoSuchFileException.", t );

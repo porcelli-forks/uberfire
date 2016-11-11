@@ -27,7 +27,6 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
@@ -43,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.base.options.SquashOption;
 import org.uberfire.java.nio.base.version.VersionRecord;
 import org.uberfire.java.nio.file.Path;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
 
 import static org.junit.Assert.*;
@@ -300,7 +300,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
     private static void printLog( final Git git ) {
         try {
-            for ( final RevCommit revCommit : git.log().call() ) {
+            for ( final RevCommit revCommit : git._log().call() ) {
                 logger.info( "[LOG]: " + revCommit.getName() + " --- " + revCommit.getFullMessage() );
             }
         } catch ( GitAPIException e ) {
@@ -379,7 +379,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
                                                   String branch ) throws GitAPIException, MissingObjectException, IncorrectObjectTypeException {
         List<RevCommit> commits = new ArrayList<>();
         final ObjectId id = new GetRef( origin.getRepository(), branch ).execute().getObjectId();
-        for ( RevCommit commit : origin.log().add( id ).call() ) {
+        for ( RevCommit commit : origin._log().add( id ).call() ) {
             commits.add( commit );
         }
         return commits;

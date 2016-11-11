@@ -16,9 +16,9 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.reftree.RefTreeDatabase;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 /**
  * TODO: update me
@@ -34,7 +34,7 @@ public class GarbageCollector {
     public void execute() {
         try {
             if ( !( git.getRepository().getRefDatabase() instanceof RefTreeDatabase ) ) {
-                git.gc().call();
+                git._gc().call();
             }
         } catch ( GitAPIException e ) {
             throw new RuntimeException( e );

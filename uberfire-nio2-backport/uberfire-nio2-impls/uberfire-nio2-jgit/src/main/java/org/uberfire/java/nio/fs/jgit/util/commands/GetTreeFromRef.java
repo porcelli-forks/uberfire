@@ -17,33 +17,29 @@
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 
 /**
  * TODO: update me
  */
 public class GetTreeFromRef {
 
-    private final Repository repo;
+    private final Git git;
     private final String treeRefName;
 
-    public GetTreeFromRef( final Repository repo,
+    public GetTreeFromRef( final Git git,
                            final String treeRefName ) {
-        this.repo = repo;
+        this.git = git;
         this.treeRefName = treeRefName;
     }
 
     public ObjectId execute() {
-        try {
-            final RevCommit commit = new GetLastCommit( repo, treeRefName ).execute();
-            if ( commit == null ) {
-                return null;
-            }
-            return commit.getTree().getId();
-        } catch ( java.io.IOException ex ) {
-            throw new RuntimeException( ex );
+        final RevCommit commit = git.getLastCommit( treeRefName );
+        if ( commit == null ) {
+            return null;
         }
+        return commit.getTree().getId();
     }
 
 }

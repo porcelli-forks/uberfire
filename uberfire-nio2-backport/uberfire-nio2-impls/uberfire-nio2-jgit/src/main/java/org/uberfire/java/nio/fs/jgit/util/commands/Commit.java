@@ -24,22 +24,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.CommitBuilder;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.model.CommitContent;
+import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
 import org.uberfire.java.nio.fs.jgit.util.model.CopyCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.model.DefaultCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.model.MoveCommitContent;
 import org.uberfire.java.nio.fs.jgit.util.model.RevertCommitContent;
 
 import static java.util.Collections.*;
-import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.*;
 
 /**
  * TODO: update me
@@ -83,7 +82,7 @@ public class Commit extends BaseRefUpdateCommand {
         this.content = content;
         try {
             if ( originId == null ) {
-                this.originId = getLastCommit( git, branchName );
+                this.originId = git.getLastCommit( branchName );
             } else {
                 this.originId = originId;
             }

@@ -17,13 +17,12 @@
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import java.io.File;
-import java.util.Optional;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static org.uberfire.commons.validation.PortablePreconditions.*;
@@ -48,7 +47,7 @@ public class Fork {
         this.credentialsProvider = checkNotNull( "credentialsProvider", credentialsProvider );
     }
 
-    public Optional<Git> execute() throws InvalidRemoteException {
+    public Git execute() throws InvalidRemoteException {
 
         if ( logger.isDebugEnabled() ) {
             logger.debug( "Forking repository <{}> to <{}>", source, target );
@@ -57,12 +56,12 @@ public class Fork {
         final File origin = new File( parentFolder, source + DOT_GIT_EXT );
         final File destination = new File( parentFolder, target + DOT_GIT_EXT );
 
-        if ( destination.exists() ){
+        if ( destination.exists() ) {
             String message = String.format( "Cannot fork because destination repository <%s> already exists", target );
             logger.error( message );
             throw new GitException( message );
         }
 
-        return new Clone( destination, origin.toPath().toUri().toString(), false, credentialsProvider ).execute();
+        return Git.clone( destination, origin.toPath().toUri().toString(), false, credentialsProvider );
     }
 }

@@ -19,7 +19,6 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.dircache.DirCacheEditor;
 import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.lib.FileMode;
@@ -28,6 +27,7 @@ import org.eclipse.jgit.lib.ObjectInserter;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.model.CommitContent;
 
 abstract class BaseCreateCommitTree<T extends CommitContent> {

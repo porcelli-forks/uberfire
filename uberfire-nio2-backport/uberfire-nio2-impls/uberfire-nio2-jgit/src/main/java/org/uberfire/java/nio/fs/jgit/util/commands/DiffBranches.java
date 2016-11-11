@@ -28,9 +28,9 @@ import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.diff.Edit;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.patch.FileHeader;
 import org.uberfire.java.nio.base.FileDiff;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static org.uberfire.commons.validation.PortablePreconditions.*;
@@ -43,14 +43,14 @@ import static org.uberfire.commons.validation.PortablePreconditions.*;
  */
 public class DiffBranches {
 
-    private final Repository repository;
+    private final Git git;
     private final String branchA;
     private final String branchB;
 
-    public DiffBranches( Repository repository,
+    public DiffBranches( Git git,
                          String branchA,
                          String branchB ) {
-        this.repository = checkNotNull( "repository", repository );
+        this.git = checkNotNull( "git", git );
         this.branchA = checkNotEmpty( "branchA", branchA );
         this.branchB = checkNotEmpty( "branchB", branchB );
     }
@@ -58,9 +58,8 @@ public class DiffBranches {
     public List<FileDiff> execute() {
         final List<FileDiff> diffs = new ArrayList<>();
 
-        final List<DiffEntry> result = new ListDiffs( repository,
-                                                      new GetTreeFromRef( repository, this.branchA ).execute(),
-                                                      new GetTreeFromRef( repository, this.branchB ).execute() ).execute();
+        final List<DiffEntry> result = git.listDiffs( git.getTreeFromRef( this.branchA ),
+                                                      git.getTreeFromRef( this.branchB ) );
 
         final DiffFormatter formatter = createFormatter();
 
@@ -85,7 +84,7 @@ public class DiffBranches {
 
         OutputStream outputStream = new ByteArrayOutputStream();
         DiffFormatter formatter = new DiffFormatter( outputStream );
-        formatter.setRepository( repository );
+        formatter.setRepository( git.getRepository() );
         return formatter;
     }
 
@@ -120,7 +119,7 @@ public class DiffBranches {
         List<String> lines = new ArrayList<>();
         if ( !id.equals( ObjectId.zeroId() ) ) {
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            final ObjectLoader loader = repository.open( id );
+            final ObjectLoader loader = git.getRepository().open( id );
             loader.copyTo( stream );
             final String content = stream.toString();
             List<String> filteredLines = Arrays.asList( content.split( "\n" ) );

@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.merge.MergeStrategy;
@@ -31,10 +30,10 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static org.uberfire.commons.validation.PortablePreconditions.*;
-import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.*;
 
 /**
  * Implements Git Merge command between branches in a bare repository.
@@ -67,18 +66,18 @@ public class Merge {
 
         final Repository repo = git.getRepository();
 
-        final RevCommit lastSourceCommit = getLastCommit( git, sourceBranch );
-        final RevCommit lastTargetCommit = getLastCommit( git, targetBranch );
+        final RevCommit lastSourceCommit = git.getLastCommit( sourceBranch );
+        final RevCommit lastTargetCommit = git.getLastCommit( targetBranch );
 
         final RevCommit commonAncestor = getCommonAncestor( lastSourceCommit, lastTargetCommit );
-        final List<RevCommit> commits = listCommits( git, commonAncestor, lastSourceCommit );
+        final List<RevCommit> commits = git.listCommits( commonAncestor, lastSourceCommit );
 
         Collections.reverse( commits );
         final String[] commitsIDs = commits.stream().map( elem -> elem.getName() ).toArray( String[]::new );
 
         canMerge( repo, commonAncestor, lastSourceCommit, lastTargetCommit, sourceBranch, targetBranch );
 
-        new CherryPick( repo, targetBranch, commitsIDs ).execute();
+        git.cherryPick( targetBranch, commitsIDs );
 
         if ( logger.isDebugEnabled() ) {
             logger.debug( "Merging commits from <{}> to <{}>", sourceBranch, targetBranch );
@@ -107,7 +106,7 @@ public class Merge {
 
     private void existsBranch( final Git git,
                                final String branch ) {
-        if ( new GetRef( git.getRepository(), branch ).execute() == null ) {
+        if ( git.getRef( branch ) == null ) {
             throw new GitException( String.format( "Branch <<%s>> does not exists", branch ) );
         }
     }
