@@ -30,7 +30,6 @@ import org.junit.Test;
 import org.uberfire.java.nio.base.version.VersionAttributes;
 import org.uberfire.java.nio.base.version.VersionRecord;
 import org.uberfire.java.nio.fs.jgit.util.Git;
-import org.uberfire.java.nio.fs.jgit.util.RetryUtil;
 import org.uberfire.java.nio.fs.jgit.util.commands.Clone;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
