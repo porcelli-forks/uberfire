@@ -19,14 +19,14 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Ref;
 import org.uberfire.java.nio.IOException;
-import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 public class DeleteBranch {
 
-    private final Git git;
+    private final GitImpl git;
     private final Ref branch;
 
-    public DeleteBranch( final Git git,
+    public DeleteBranch( final GitImpl git,
                          final Ref branch ) {
         this.git = git;
         this.branch = branch;

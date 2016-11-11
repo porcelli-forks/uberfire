@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.uberfire.java.nio.IOException;
 import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 public class CreateRepository {
 
@@ -58,7 +59,7 @@ public class CreateRepository {
                 }
             }
 
-            return Optional.of( new Git( git ) );
+            return Optional.of( new GitImpl( git ) );
         } catch ( final Exception ex ) {
             throw new IOException( ex );
         }

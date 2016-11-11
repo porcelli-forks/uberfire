@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateBranch;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
@@ -53,7 +54,7 @@ public class JGitMergeTest extends AbstractTestInfra {
             put( "file1.txt", tempFile( "temp1" ) );
         }} ).execute();
 
-        new CreateBranch( origin, "master", "develop" ).execute();
+        new CreateBranch( (GitImpl) origin, "master", "develop" ).execute();
 
         new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2" ) );
@@ -91,7 +92,7 @@ public class JGitMergeTest extends AbstractTestInfra {
             put( "file1.txt", tempFile( "temp1" ) );
         }} ).execute();
 
-        new CreateBranch( origin, "master", "develop" ).execute();
+        new CreateBranch( (GitImpl) origin, "master", "develop" ).execute();
 
         new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
@@ -124,7 +125,7 @@ public class JGitMergeTest extends AbstractTestInfra {
             put( "file1.txt", tempFile( "temp1" ) );
         }} ).execute();
 
-        new CreateBranch( origin, "master", "develop" ).execute();
+        new CreateBranch( (GitImpl) origin, "master", "develop" ).execute();
 
         new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2" ) );
@@ -162,7 +163,7 @@ public class JGitMergeTest extends AbstractTestInfra {
             put( "file1.jpg", tempFile( contentA ) );
         }} ).execute();
 
-        new CreateBranch( origin, "master", "develop" ).execute();
+        new CreateBranch( (GitImpl) origin, "master", "develop" ).execute();
 
         new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentB ) );
@@ -196,7 +197,7 @@ public class JGitMergeTest extends AbstractTestInfra {
             put( "file1.jpg", tempFile( contentA ) );
         }} ).execute();
 
-        new CreateBranch( origin, "master", "develop" ).execute();
+        new CreateBranch( (GitImpl) origin, "master", "develop" ).execute();
 
         new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentB ) );

@@ -43,6 +43,7 @@ import org.uberfire.java.nio.base.options.SquashOption;
 import org.uberfire.java.nio.base.version.VersionRecord;
 import org.uberfire.java.nio.file.Path;
 import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
 
 import static org.junit.Assert.*;
@@ -107,7 +108,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
         } catch ( InterruptedException e ) {
         }
 
-        assertEquals( 3, this.getCommitsFromBranch( fs.getGit(), "master" ).size() );
+        assertEquals( 3, getCommitsFromBranch( (GitImpl) fs.getGit(), "master" ).size() );
     }
 
     @Test
@@ -149,7 +150,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
         waitFor( threadsFinishedBarrier );
 
-        assertEquals( 2, getCommitsFromBranch( fs.getGit(), "master" ).size() );
+        assertEquals( 2, getCommitsFromBranch( (GitImpl) fs.getGit(), "master" ).size() );
 
     }
 
@@ -192,7 +193,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
         waitFor( threadsFinishedBarrier );
 
-        assertEquals( 2, getCommitsFromBranch( fs.getGit(), "master" ).size() );
+        assertEquals( 2, getCommitsFromBranch( (GitImpl) fs.getGit(), "master" ).size() );
 
     }
 
@@ -219,7 +220,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
             fs.unlock();
         }
 
-        assertEquals( 3, getCommitsFromBranch( fs.getGit(), "master" ).size() );
+        assertEquals( 3, getCommitsFromBranch( (GitImpl) fs.getGit(), "master" ).size() );
 
     }
 
@@ -300,7 +301,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
 
     private static void printLog( final Git git ) {
         try {
-            for ( final RevCommit revCommit : git._log().call() ) {
+            for ( final RevCommit revCommit : ( (GitImpl) git )._log().call() ) {
                 logger.info( "[LOG]: " + revCommit.getName() + " --- " + revCommit.getFullMessage() );
             }
         } catch ( GitAPIException e ) {
@@ -372,10 +373,10 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
         logger.info( "Writing file: " + path.getFileName().toString() );
         stream.write( "my cool content".getBytes() );
         stream.close();
-        return this.getCommitsFromBranch( fs.getGit(), branch ).get( 0 );
+        return this.getCommitsFromBranch( (GitImpl) fs.getGit(), branch ).get( 0 );
     }
 
-    private List<RevCommit> getCommitsFromBranch( final Git origin,
+    private List<RevCommit> getCommitsFromBranch( final GitImpl origin,
                                                   String branch ) throws GitAPIException, MissingObjectException, IncorrectObjectTypeException {
         List<RevCommit> commits = new ArrayList<>();
         final ObjectId id = new GetRef( origin.getRepository(), branch ).execute().getObjectId();

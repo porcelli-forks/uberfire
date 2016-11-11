@@ -18,16 +18,16 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.reftree.RefTreeDatabase;
-import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 /**
  * TODO: update me
  */
 public class GarbageCollector {
 
-    private final Git git;
+    private final GitImpl git;
 
-    public GarbageCollector( final Git git ) {
+    public GarbageCollector( final GitImpl git ) {
         this.git = git;
     }
 
