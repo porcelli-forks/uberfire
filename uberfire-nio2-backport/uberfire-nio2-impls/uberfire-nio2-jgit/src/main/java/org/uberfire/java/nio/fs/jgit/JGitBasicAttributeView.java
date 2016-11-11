@@ -26,11 +26,6 @@ import org.uberfire.java.nio.file.attribute.BasicFileAttributes;
 import org.uberfire.java.nio.file.attribute.FileTime;
 import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 import org.uberfire.java.nio.fs.jgit.util.model.PathType;
-import org.uberfire.java.nio.fs.jgit.util.commands.GetFirstCommit;
-import org.uberfire.java.nio.fs.jgit.util.commands.GetLastCommit;
-import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
-
-import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.*;
 
 /**
  *

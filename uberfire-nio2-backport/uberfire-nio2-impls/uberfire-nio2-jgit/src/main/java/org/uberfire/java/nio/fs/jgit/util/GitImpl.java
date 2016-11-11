@@ -42,6 +42,9 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.uberfire.commons.config.ConfigProperties;
 import org.uberfire.commons.data.Pair;
 import org.uberfire.java.nio.base.FileDiff;
 import org.uberfire.java.nio.file.NoSuchFileException;
@@ -74,10 +77,35 @@ import org.uberfire.java.nio.fs.jgit.util.model.CommitContent;
 import org.uberfire.java.nio.fs.jgit.util.model.CommitInfo;
 import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 
-import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.*;
 import static org.uberfire.java.nio.fs.jgit.util.commands.PathUtil.*;
 
 public class GitImpl implements Git {
+
+    private static final Logger LOG = LoggerFactory.getLogger( GitImpl.class );
+    private static final String DEFAULT_JGIT_RETRY_SLEEP_TIME = "50";
+    private static int JGIT_RETRY_TIMES = initRetryValue();
+    private static final int JGIT_RETRY_SLEEP_TIME = initSleepTime();
+
+    private static int initSleepTime() {
+        final ConfigProperties config = new ConfigProperties( System.getProperties() );
+        return config.get( "org.uberfire.nio.git.retry.onfail.sleep", DEFAULT_JGIT_RETRY_SLEEP_TIME ).getIntValue();
+    }
+
+    private static int initRetryValue() {
+        final ConfigProperties config = new ConfigProperties( System.getProperties() );
+        final String osName = config.get( "os.name", "any" ).getValue();
+        final String defaultRetryTimes;
+        if ( osName.toLowerCase().contains( "windows" ) ) {
+            defaultRetryTimes = "10";
+        } else {
+            defaultRetryTimes = "0";
+        }
+        try {
+            return config.get( "org.uberfire.nio.git.retry.onfail.times", defaultRetryTimes ).getIntValue();
+        } catch ( NumberFormatException ex ) {
+            return 0;
+        }
+    }
 
     private final org.eclipse.jgit.api.Git git;
 
@@ -294,6 +322,39 @@ public class GitImpl implements Git {
     public List<PathInfo> listPathContent( final String branchName,
                                            final String path ) {
         return retryIfNeeded( RuntimeException.class, () -> new ListPathContent( this, branchName, path ).execute() );
+    }
+
+    //just for test purposes
+    static void setRetryTimes( int retryTimes ) {
+        JGIT_RETRY_TIMES = retryTimes;
+    }
+
+    public static <E extends Throwable, T> T retryIfNeeded( final Class<E> eclazz,
+                                                            final ThrowableSupplier<T> supplier ) throws E {
+        int i = 0;
+        do {
+            try {
+                return supplier.get();
+            } catch ( final Throwable ex ) {
+                if ( i < ( JGIT_RETRY_TIMES - 1 ) ) {
+                    try {
+                        Thread.sleep( JGIT_RETRY_SLEEP_TIME );
+                    } catch ( final InterruptedException ignored ) {
+                    }
+                    LOG.debug( String.format( "Unexpected exception (%d/%d).", i + 1, JGIT_RETRY_TIMES ), ex );
+                } else {
+                    LOG.error( String.format( "Unexpected exception (%d/%d).", i + 1, JGIT_RETRY_TIMES ), ex );
+                    if ( ex.getClass().isAssignableFrom( eclazz ) ) {
+                        throw (E) ex;
+                    }
+                    throw new RuntimeException( ex );
+                }
+            }
+
+            i++;
+        } while ( i < JGIT_RETRY_TIMES );
+
+        return null;
     }
 
 }

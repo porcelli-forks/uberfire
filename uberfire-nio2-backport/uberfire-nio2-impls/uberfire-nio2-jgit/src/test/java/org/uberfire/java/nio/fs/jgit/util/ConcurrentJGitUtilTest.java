@@ -34,7 +34,6 @@ import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 
 import static org.junit.Assert.*;
-import static org.uberfire.java.nio.fs.jgit.util.RetryUtil.*;
 
 @RunWith(BMUnitRunner.class)
 @BMUnitConfig(loadDirectory = "target/test-classes", debug = true) // set "debug=true to see debug output
@@ -42,7 +41,7 @@ public class ConcurrentJGitUtilTest extends AbstractTestInfra {
 
     @BeforeClass
     public static void setup() {
-        RetryUtil.setRetryTimes( 5 );
+        GitImpl.setRetryTimes( 5 );
     }
 
     @Test
