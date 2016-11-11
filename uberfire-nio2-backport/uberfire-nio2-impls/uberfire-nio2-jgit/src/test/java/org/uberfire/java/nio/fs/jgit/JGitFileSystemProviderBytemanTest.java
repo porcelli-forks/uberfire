@@ -43,9 +43,9 @@ import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.base.options.SquashOption;
 import org.uberfire.java.nio.base.version.VersionRecord;
 import org.uberfire.java.nio.file.Path;
+import org.uberfire.java.nio.fs.jgit.util.commands.GetRef;
 
 import static org.junit.Assert.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 @RunWith(org.jboss.byteman.contrib.bmunit.BMUnitRunner.class)
 @BMUnitConfig(loadDirectory = "target/test-classes", debug = true) // set "debug=true to see debug output
@@ -378,7 +378,7 @@ public class JGitFileSystemProviderBytemanTest extends AbstractTestInfra {
     private List<RevCommit> getCommitsFromBranch( final Git origin,
                                                   String branch ) throws GitAPIException, MissingObjectException, IncorrectObjectTypeException {
         List<RevCommit> commits = new ArrayList<>();
-        final ObjectId id = resolveObjectId( origin, branch );
+        final ObjectId id = new GetRef( origin.getRepository(), branch ).execute().getObjectId();
         for ( RevCommit commit : origin.log().add( id ).call() ) {
             commits.add( commit );
         }

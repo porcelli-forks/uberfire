@@ -16,9 +16,11 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 
@@ -53,6 +55,23 @@ public class Commit {
 
     public Commit( final Git git,
                    final String branchName,
+                   final String name,
+                   final String email,
+                   final String message,
+                   final TimeZone timeZone,
+                   final Date when,
+                   final boolean amend,
+                   final Map<String, File> content ) {
+        this( git,
+              branchName,
+              new CommitInfo( null, name, email, message, timeZone, when ),
+              amend,
+              null,
+              new DefaultCommitContent( content ) );
+    }
+
+    public Commit( final Git git,
+                   final String branchName,
                    final CommitInfo commitInfo,
                    final boolean amend,
                    final ObjectId originId,
@@ -64,7 +83,7 @@ public class Commit {
         this.content = content;
         try {
             if ( originId == null ) {
-                this.originId = git.getRepository().resolve( branchName + "^{commit}" );
+                this.originId = getLastCommit( git, branchName );
             } else {
                 this.originId = originId;
             }
@@ -101,7 +120,7 @@ public class Commit {
                 commit.setMessage( commitInfo.getMessage() );
                 if ( headId != null ) {
                     if ( amend ) {
-                        final RevCommit previousCommit = resolveRevCommit( git.getRepository(), headId );
+                        final RevCommit previousCommit = new ResolveRevCommit( git.getRepository(), headId ).execute();
                         final List<RevCommit> p = Arrays.asList( previousCommit.getParents() );
                         reverse( p );
                         commit.setParentIds( p );
@@ -117,7 +136,7 @@ public class Commit {
                 refUpdate( git.getRepository(),
                            branchName,
                            headId,
-                           resolveRevCommit( git.getRepository(), commitId ),
+                           new ResolveRevCommit( git.getRepository(), commitId ).execute(),
                            "commit: " );
             } else {
                 hadEffecitiveCommit = false;

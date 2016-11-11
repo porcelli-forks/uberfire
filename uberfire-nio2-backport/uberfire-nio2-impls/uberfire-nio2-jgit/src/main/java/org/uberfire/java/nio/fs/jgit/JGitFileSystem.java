@@ -57,12 +57,12 @@ import org.uberfire.java.nio.file.WatchService;
 import org.uberfire.java.nio.file.Watchable;
 import org.uberfire.java.nio.file.attribute.UserPrincipalLookupService;
 import org.uberfire.java.nio.file.spi.FileSystemProvider;
+import org.uberfire.java.nio.fs.jgit.util.commands.ListRefs;
 
 import static java.util.Arrays.*;
 import static java.util.Collections.*;
 import static org.eclipse.jgit.lib.Repository.*;
 import static org.uberfire.commons.validation.PortablePreconditions.*;
-import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
 public class JGitFileSystem implements FileSystem,
                                        FileSystemId,
@@ -168,7 +168,7 @@ public class JGitFileSystem implements FileSystem,
             }
 
             private void init() {
-                branches = branchList( git ).iterator();
+                branches = new ListRefs( git.getRepository() ).execute().iterator();
             }
 
             @Override

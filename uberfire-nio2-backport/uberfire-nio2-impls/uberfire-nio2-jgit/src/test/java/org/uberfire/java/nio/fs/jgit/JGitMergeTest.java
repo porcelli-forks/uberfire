@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.uberfire.java.nio.fs.jgit.util.JGitUtil;
+import org.uberfire.java.nio.fs.jgit.util.commands.Commit;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateBranch;
 import org.uberfire.java.nio.fs.jgit.util.commands.CreateRepository;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListDiffs;
@@ -49,27 +50,27 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
         final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
-        }} );
+        }} ).execute();
 
         new CreateBranch( origin, "master", "develop" ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2" ) );
-        }} );
+        }} ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-2", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-2", null, null, false, new HashMap<String, File>() {{
             put( "file3.txt", tempFile( "temp3" ) );
-        }} );
+        }} ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-3", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-3", null, null, false, new HashMap<String, File>() {{
             put( "file4.txt", tempFile( "temp4" ) );
-        }} );
+        }} ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-4", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-4", null, null, false, new HashMap<String, File>() {{
             put( "file5.txt", tempFile( "temp5" ) );
-        }} );
+        }} ).execute();
 
         new Merge( origin, "develop", "master" ).execute();
 
@@ -87,15 +88,15 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
         final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
-        }} );
+        }} ).execute();
 
         new CreateBranch( origin, "master", "develop" ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
-        }} );
+        }} ).execute();
 
         new Merge( origin, "develop", "master" ).execute();
 
@@ -120,27 +121,27 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
         final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.txt", tempFile( "temp1" ) );
-        }} );
+        }} ).execute();
 
         new CreateBranch( origin, "master", "develop" ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file2.txt", tempFile( "temp2" ) );
-        }} );
+        }} ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-2", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-2", null, null, false, new HashMap<String, File>() {{
             put( "file3.txt", tempFile( "temp3" ) );
-        }} );
+        }} ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-3", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-3", null, null, false, new HashMap<String, File>() {{
             put( "file4.txt", tempFile( "temp4" ) );
-        }} );
+        }} ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-4", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-4", null, null, false, new HashMap<String, File>() {{
             put( "file5.txt", tempFile( "temp5" ) );
-        }} );
+        }} ).execute();
 
         new Merge( origin, "develop", "nonexistent" ).execute();
 
@@ -158,19 +159,19 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
         final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentA ) );
-        }} );
+        }} ).execute();
 
         new CreateBranch( origin, "master", "develop" ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentB ) );
-        }} );
+        }} ).execute();
 
-        commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentC ) );
-        }} );
+        }} ).execute();
 
         new Merge( origin, "develop", "master" ).execute();
 
@@ -192,15 +193,15 @@ public class JGitMergeTest extends AbstractTestInfra {
         final File gitSource = new File( parentFolder, SOURCE_GIT + ".git" );
         final Git origin = new CreateRepository( gitSource ).execute().get();
 
-        commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "master", "name", "name@example.com", "master-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentA ) );
-        }} );
+        }} ).execute();
 
         new CreateBranch( origin, "master", "develop" ).execute();
 
-        commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
+        new Commit( origin, "develop", "name", "name@example.com", "develop-1", null, null, false, new HashMap<String, File>() {{
             put( "file1.jpg", tempFile( contentB ) );
-        }} );
+        }} ).execute();
 
         new Merge( origin, "develop", "master" ).execute();
 

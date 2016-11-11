@@ -17,66 +17,61 @@
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.uberfire.java.nio.fs.jgit.util.PathInfo;
-import org.uberfire.java.nio.fs.jgit.util.PathType;
 
-import static org.eclipse.jgit.lib.Constants.*;
 import static org.uberfire.java.nio.fs.jgit.util.JGitUtil.*;
 
-public class GetPathInfo {
+public class ListPathContent {
 
     private final Git git;
     private final String branchName;
     private final String path;
 
-    public GetPathInfo( final Git git,
-                        final String branchName,
-                        final String path ) {
+    public ListPathContent( final Git git,
+                            final String branchName,
+                            final String path ) {
         this.git = git;
         this.branchName = branchName;
         this.path = path;
     }
 
-    public PathInfo execute() throws IOException {
+    public List<PathInfo> execute() throws IOException {
 
         final String gitPath = normalizePath( path );
-
-        if ( gitPath.isEmpty() ) {
-            return new PathInfo( null, gitPath, PathType.DIRECTORY );
-        }
-
+        final List<PathInfo> result = new ArrayList<>();
         final ObjectId tree = getTreeRefObjectId( git.getRepository(), branchName );
         if ( tree == null ) {
-            return new PathInfo( null, gitPath, PathType.NOT_FOUND );
+            return result;
         }
         try ( final TreeWalk tw = new TreeWalk( git.getRepository() ) ) {
-            tw.setFilter( PathFilter.create( gitPath ) );
+            boolean found = false;
+            if ( gitPath.isEmpty() ) {
+                found = true;
+            } else {
+                tw.setFilter( PathFilter.create( gitPath ) );
+            }
             tw.reset( tree );
             while ( tw.next() ) {
-                if ( tw.getPathString().equals( gitPath ) ) {
-                    if ( tw.getFileMode( 0 ).equals( FileMode.TYPE_TREE ) ) {
-                        return new PathInfo( tw.getObjectId( 0 ), gitPath, PathType.DIRECTORY );
-                    } else if ( tw.getFileMode( 0 ).equals( FileMode.TYPE_FILE ) ||
-                            tw.getFileMode( 0 ).equals( FileMode.EXECUTABLE_FILE ) ||
-                            tw.getFileMode( 0 ).equals( FileMode.REGULAR_FILE ) ) {
-                        final long size = tw.getObjectReader().getObjectSize( tw.getObjectId( 0 ), OBJ_BLOB );
-                        return new PathInfo( tw.getObjectId( 0 ), gitPath, PathType.FILE, size );
-                    }
-                }
-                if ( tw.isSubtree() ) {
+                if ( !found && tw.isSubtree() ) {
                     tw.enterSubtree();
                 }
+                if ( tw.getPathString().equals( gitPath ) ) {
+                    found = true;
+                    continue;
+                }
+                if ( found ) {
+                    result.add( new PathInfo( tw.getObjectId( 0 ), tw.getPathString(), tw.getFileMode( 0 ) ) );
+                }
             }
-        } catch ( final Throwable ex ) {
-            throw ex;
+            return result;
         }
-        return new PathInfo( null, gitPath, PathType.NOT_FOUND );
     }
 
 }

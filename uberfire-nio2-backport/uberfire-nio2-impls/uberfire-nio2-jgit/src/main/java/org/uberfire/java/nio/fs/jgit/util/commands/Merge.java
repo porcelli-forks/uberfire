@@ -108,7 +108,7 @@ public class Merge {
 
     private void existsBranch( final Git git,
                                final String branch ) {
-        if ( JGitUtil.getBranch( git.getRepository(), branch ) == null ) {
+        if ( new GetRef( git.getRepository(), branch ).execute() == null ) {
             throw new GitException( String.format( "Branch <<%s>> does not exists", branch ) );
         }
     }
