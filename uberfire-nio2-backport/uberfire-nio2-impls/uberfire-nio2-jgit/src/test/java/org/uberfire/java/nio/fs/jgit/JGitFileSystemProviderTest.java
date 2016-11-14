@@ -71,7 +71,9 @@ import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 import org.uberfire.java.nio.fs.jgit.util.model.PathType;
 
+import static junit.framework.TestCase.*;
 import static org.fest.assertions.api.Assertions.*;
+import static org.fest.assertions.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 import static org.uberfire.java.nio.file.StandardDeleteOption.*;
 
@@ -1356,6 +1358,39 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final JGitVersionAttributeView attrs = provider.getFileAttributeView( path.getRoot(), JGitVersionAttributeView.class );
 
         assertThat( attrs.readAttributes().history().records().size() ).isEqualTo( 5 );
+    }
+
+    @Test
+    public void accessOldVersions() throws Exception {
+
+        final URI newRepo = URI.create( "git://old-versions-test-repo" );
+
+        final FileSystem fs = provider.newFileSystem( newRepo, new HashMap<String, Object>() {{
+            put( JGitFileSystemProvider.GIT_ENV_KEY_INIT, "true" );
+        }} );
+
+        assertThat( fs ).isNotNull();
+
+        for ( int i = 0; i < 5; i++ ) {
+            final Path path = provider.getPath( URI.create( "git://old-versions-test-repo/some/path/myfile.txt" ) );
+            final OutputStream outStream = provider.newOutputStream( path );
+            assertThat( outStream ).isNotNull();
+            outStream.write( ( "my cool content" + i ).getBytes() );
+            outStream.close();
+        }
+
+        final Path path = provider.getPath( URI.create( "git://old-versions-test-repo/some/path/myfile.txt" ) );
+        final JGitVersionAttributeView attrs = provider.getFileAttributeView( path, JGitVersionAttributeView.class );
+
+        assertThat( attrs.readAttributes().history().records().size() ).isEqualTo( 5 );
+
+        for ( int i = 0; i < 5; i++ ) {
+            final Path oldPath = provider.getPath( URI.create( "git://" + attrs.readAttributes().history().records().get( i ).id() + "@old-versions-test-repo/some/path/myfile.txt" ) );
+            final InputStream stream = provider.newInputStream( oldPath );
+            assertNotNull( stream );
+            final String content = new Scanner( stream ).useDelimiter( "\\A" ).next();
+            assertEquals( "my cool content" + i, content );
+        }
     }
 
     @Test

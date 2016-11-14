@@ -16,8 +16,13 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectIdRef;
+import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
+
+import static org.eclipse.jgit.lib.Constants.*;
 
 /**
  * TODO: update me
@@ -35,10 +40,19 @@ public class GetRef {
 
     public Ref execute() {
         try {
-            return repo.getRefDatabase().getRef( name );
-        } catch ( java.io.IOException e ) {
+            final Ref value = repo.getRefDatabase().getRef( name );
+            if ( value != null ) {
+                return value;
+            }
+            final ObjectId treeRef = repo.resolve( name + "^{tree}" );
+            if ( treeRef != null ) {
+                final ObjectLoader loader = repo.getObjectDatabase().newReader().open( treeRef );
+                if ( loader.getType() == OBJ_TREE ) {
+                    return new ObjectIdRef.PeeledTag( Ref.Storage.NEW, name, ObjectId.fromString( name ), treeRef );
+                }
+            }
+        } catch ( final Exception ignored ) {
         }
-
         return null;
     }
 
