@@ -62,6 +62,17 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!--<dependency>-->
+      <!--<groupId>org.eclipse.jgit</groupId>-->
+      <!--<artifactId>org.eclipse.jgit.http.apache</artifactId>-->
+      <!--<version>4.3.1.201605051710-r</version>-->
+      <!--<exclusions>-->
+        <!--<exclusion>-->
+          <!--<groupId>commons-logging</groupId>-->
+          <!--<artifactId>commons-logging</artifactId>-->
+        <!--</exclusion>-->
+      <!--</exclusions>-->
+    <!--</dependency>-->
     <!-- Needed as replacement for commons-logging which is excluded from org.eclipse.jgit -->
     <dependency>
       <groupId>org.slf4j</groupId>

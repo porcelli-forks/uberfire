@@ -19,9 +19,11 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.util.Collection;
 import java.util.List;
 
+import org.eclipse.jgit.api.TransportConfigCallback;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.transport.Transport;
 import org.uberfire.commons.data.Pair;
 import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.GitImpl;

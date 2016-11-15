@@ -111,6 +111,7 @@ public class GitImpl implements Git {
 
     public GitImpl( final org.eclipse.jgit.api.Git git ) {
         this.git = git;
+//        HttpTransport.setConnectionFactory( new HttpClientConnectionFactory() );
     }
 
     @Override
