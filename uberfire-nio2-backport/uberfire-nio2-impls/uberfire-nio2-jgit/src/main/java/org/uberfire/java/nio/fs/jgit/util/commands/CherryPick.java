@@ -77,8 +77,7 @@ public class CherryPick extends BaseRefUpdateCommand {
                 refUpdate( git.getRepository(),
                            targetBranch,
                            newHead,
-                           srcCommit,
-                           "cherry-pick: " );
+                           srcCommit );
 
                 newHead = srcCommit;
             }

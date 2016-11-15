@@ -135,8 +135,7 @@ public class Commit extends BaseRefUpdateCommand {
                 refUpdate( git.getRepository(),
                            branchName,
                            headId,
-                           new ResolveRevCommit( git.getRepository(), commitId ).execute(),
-                           "commit: " );
+                           new ResolveRevCommit( git.getRepository(), commitId ).execute() );
             } else {
                 hadEffecitiveCommit = false;
             }

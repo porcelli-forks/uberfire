@@ -16,49 +16,46 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
-import java.text.MessageFormat;
-
 import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
-import org.eclipse.jgit.internal.JGitText;
+import org.eclipse.jgit.lib.BatchRefUpdate;
 import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.NullProgressMonitor;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.ReceiveCommand;
 
 public abstract class BaseRefUpdateCommand {
 
     protected void refUpdate( final Repository repo,
                               final String branchName,
                               final ObjectId headId,
-                              final RevCommit revCommit,
-                              final String comment ) throws java.io.IOException, ConcurrentRefUpdateException {
+                              final RevCommit commit ) throws java.io.IOException, ConcurrentRefUpdateException {
+        final BatchRefUpdate batchRefUpdate = repo.getRefDatabase().newBatchUpdate();
+        batchRefUpdate.addCommand( new ReceiveCommand(
+                headId != null ? headId.copy() : ObjectId.zeroId(),
+                commit != null ? commit.getId().copy() : ObjectId.zeroId(),
+                Constants.R_HEADS + branchName ) );
+        batchRefUpdate.setAllowNonFastForwards( true );
+        batchRefUpdate.execute( new RevWalk( repo ), NullProgressMonitor.INSTANCE );
 
-        final RefUpdate ru = repo.updateRef( Constants.R_HEADS + branchName );
-        if ( headId == null ) {
-            ru.setExpectedOldObjectId( ObjectId.zeroId() );
-        } else {
-            ru.setExpectedOldObjectId( headId );
-        }
-        ru.setNewObjectId( revCommit.getId() );
-        ru.setRefLogMessage( comment + revCommit.getShortMessage(), false );
-        forceUpdate( ru, revCommit.getId() );
-    }
+        for ( ReceiveCommand command : batchRefUpdate.getCommands() ) {
+            switch ( command.getResult() ) {
+                case OK:
+                    break;
+                case REJECTED_OTHER_REASON:
+                case REJECTED_MISSING_OBJECT:
+                case REJECTED_NONFASTFORWARD:
+                case REJECTED_NODELETE:
+                case REJECTED_NOCREATE:
+                case REJECTED_CURRENT_BRANCH:
+                case LOCK_FAILURE:
 
-    protected void forceUpdate( final RefUpdate ru,
-                                final ObjectId id ) throws java.io.IOException, ConcurrentRefUpdateException {
-        final RefUpdate.Result rc = ru.forceUpdate();
-        switch ( rc ) {
-            case NEW:
-            case FORCED:
-            case FAST_FORWARD:
-                break;
-            case REJECTED:
-            case LOCK_FAILURE:
-                throw new ConcurrentRefUpdateException( JGitText.get().couldNotLockHEAD, ru.getRef(), rc );
-            default:
-                throw new JGitInternalException( MessageFormat.format( JGitText.get().updatingRefFailed, Constants.HEAD, id.toString(), rc ) );
+                    throw new JGitInternalException( "Fail reason: " + command.getResult().toString() + " (" + command.getMessage() + ")" );
+            }
+
         }
     }
 }

@@ -1407,7 +1407,7 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         final OutputStream aStream = provider.newOutputStream( path );
         aStream.write( "my cool content".getBytes() );
         aStream.close();
-        final RevCommit commit = ( (GitImpl) fs.getGit() )._log().setMaxCount( 1 ).call().iterator().next();
+        final RevCommit commit = ( (GitImpl) fs.getGit() )._log().add( fs.getGit().getRef( "master" ).getObjectId() ).setMaxCount( 1 ).call().iterator().next();
 
         final OutputStream bStream = provider.newOutputStream( path2 );
         bStream.write( "my cool content".getBytes() );

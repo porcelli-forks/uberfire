@@ -20,6 +20,9 @@ import java.io.File;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.StoredConfig;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.uberfire.java.nio.IOException;
 import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.GitImpl;
@@ -41,7 +44,18 @@ public class CreateRepository {
 
     public Optional<Git> execute() {
         try {
-            final org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.init().setBare( true ).setDirectory( repoDir ).call();
+            final org.eclipse.jgit.api.Git _git = org.eclipse.jgit.api.Git.init().setBare( true ).setDirectory( repoDir ).call();
+
+            final StoredConfig cfg = _git.getRepository().getConfig();
+            cfg.setInt( "core", null, "repositoryformatversion", 1 );
+            cfg.setString( "extensions", null, "refsStorage", "reftree" );
+            cfg.save();
+
+            final Repository repo = new FileRepositoryBuilder()
+                    .setGitDir( repoDir )
+                    .build();
+
+            final org.eclipse.jgit.api.Git git = new org.eclipse.jgit.api.Git( repo );
 
             if ( hookDir != null ) {
                 final File repoHookDir = new File( repoDir, "hooks" );

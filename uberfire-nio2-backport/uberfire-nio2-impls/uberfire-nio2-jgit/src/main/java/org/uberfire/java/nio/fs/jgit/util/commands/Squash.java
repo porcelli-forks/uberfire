@@ -24,10 +24,8 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.CommitBuilder;
-import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectInserter;
-import org.eclipse.jgit.lib.RefUpdate;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.uberfire.java.nio.fs.jgit.util.GitImpl;
@@ -77,11 +75,11 @@ public class Squash extends BaseRefUpdateCommand {
         commitBuilder.setCommitter( startCommit.getAuthorIdent() );
 
         try ( final ObjectInserter odi = repo.newObjectInserter() ) {
-            final ObjectId squashedCommit = odi.insert( commitBuilder );
-            final RefUpdate updateRef = repo.updateRef( Constants.R_HEADS + branch );
-            updateRef.setNewObjectId( squashedCommit );
-            updateRef.setRefLogMessage( "squash commit on master ref", false );
-            forceUpdate( updateRef, squashedCommit );
+            final RevCommit squashedCommit = git.resolveRevCommit( odi.insert( commitBuilder ) );
+            refUpdate( repo,
+                       branch,
+                       this.git.getLastCommit( branch ),
+                       squashedCommit );
         } catch ( ConcurrentRefUpdateException | IOException e ) {
             throw new GitException( "Error on executing squash.", e );
         }
