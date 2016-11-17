@@ -51,8 +51,8 @@ public abstract class BaseRefUpdateCommand {
                               final String branchName,
                               final RevCommit commit ) throws java.io.IOException, ConcurrentRefUpdateException {
         update( git.getRepository(), Constants.R_HEADS + branchName, commit );
-        //this aims to be temporary
-        //but without this c git can't find master
+        //this `initialization` aims to be temporary
+        // -> without this c git can't find master when cloning repos
         if ( branchName.equals( MASTER ) && !git.isHEADInitialized() ) {
             synchronized ( git.getRepository() ) {
                 symRef( git, HEAD, Constants.R_HEADS + branchName );

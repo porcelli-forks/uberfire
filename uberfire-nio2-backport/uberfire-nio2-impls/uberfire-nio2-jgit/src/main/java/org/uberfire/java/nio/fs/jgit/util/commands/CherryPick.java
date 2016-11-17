@@ -46,8 +46,6 @@ public class CherryPick extends BaseRefUpdateCommand {
     }
 
     public void execute() {
-        RevCommit newHead = null;
-
         final List<ObjectId> commits = git.resolveObjectIds( this.commits );
         if ( commits.size() != this.commits.length ) {
             throw new IOException( "Couldn't resolve some commits." );
@@ -59,8 +57,6 @@ public class CherryPick extends BaseRefUpdateCommand {
         }
 
         try {
-            newHead = git.resolveRevCommit( headRef.getObjectId() );
-
             // loop through all refs to be cherry-picked
             for ( final ObjectId src : commits ) {
                 final RevCommit srcCommit = git.resolveRevCommit( src );
@@ -77,8 +73,6 @@ public class CherryPick extends BaseRefUpdateCommand {
                 refUpdate( git,
                            targetBranch,
                            srcCommit );
-
-                newHead = srcCommit;
             }
         } catch ( final java.io.IOException e ) {
             throw new IOException( new JGitInternalException(
