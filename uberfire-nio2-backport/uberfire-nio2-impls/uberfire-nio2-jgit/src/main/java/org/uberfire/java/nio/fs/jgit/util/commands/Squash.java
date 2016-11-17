@@ -76,9 +76,8 @@ public class Squash extends BaseRefUpdateCommand {
 
         try ( final ObjectInserter odi = repo.newObjectInserter() ) {
             final RevCommit squashedCommit = git.resolveRevCommit( odi.insert( commitBuilder ) );
-            refUpdate( repo,
+            refUpdate( git,
                        branch,
-                       this.git.getLastCommit( branch ),
                        squashedCommit );
         } catch ( ConcurrentRefUpdateException | IOException e ) {
             throw new GitException( "Error on executing squash.", e );

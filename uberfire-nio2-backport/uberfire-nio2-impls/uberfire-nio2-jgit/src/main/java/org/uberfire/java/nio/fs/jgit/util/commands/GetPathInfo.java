@@ -72,8 +72,6 @@ public class GetPathInfo {
                     tw.enterSubtree();
                 }
             }
-        } catch ( final Throwable ex ) {
-            throw ex;
         }
         return new PathInfo( null, gitPath, PathType.NOT_FOUND );
     }

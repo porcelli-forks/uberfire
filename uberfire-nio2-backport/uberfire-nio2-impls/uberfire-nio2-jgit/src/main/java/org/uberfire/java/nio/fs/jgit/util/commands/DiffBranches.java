@@ -104,8 +104,7 @@ public class DiffBranches {
             final List<String> linesA = getLines( elem.getOldId().toObjectId(), startA, endA );
             final List<String> linesB = getLines( elem.getNewId().toObjectId(), startB, endB );
 
-            FileDiff diff = new FileDiff( pathA, pathB, startA, endA, startB, endB, changeType, linesA, linesB );
-            return diff;
+            return new FileDiff( pathA, pathB, startA, endA, startB, endB, changeType, linesA, linesB );
 
         } catch ( IOException e ) {
             throw new GitException( "A problem occurred when trying to obtain diffs between files", e );
@@ -118,11 +117,11 @@ public class DiffBranches {
                                    final int fromEnd ) throws IOException {
         List<String> lines = new ArrayList<>();
         if ( !id.equals( ObjectId.zeroId() ) ) {
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            final ByteArrayOutputStream stream = new ByteArrayOutputStream();
             final ObjectLoader loader = git.getRepository().open( id );
             loader.copyTo( stream );
             final String content = stream.toString();
-            List<String> filteredLines = Arrays.asList( content.split( "\n" ) );
+            final List<String> filteredLines = Arrays.asList( content.split( "\n" ) );
             lines = filteredLines.subList( fromStart, fromEnd );
         }
         return lines;

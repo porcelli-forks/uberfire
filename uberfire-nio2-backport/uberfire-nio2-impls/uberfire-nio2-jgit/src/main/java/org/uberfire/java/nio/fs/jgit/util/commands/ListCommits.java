@@ -71,8 +71,6 @@ public class ListCommits {
                 list.add( rev );
             }
             return list;
-        } catch ( final Exception ex ) {
-            throw ex;
         }
     }
 

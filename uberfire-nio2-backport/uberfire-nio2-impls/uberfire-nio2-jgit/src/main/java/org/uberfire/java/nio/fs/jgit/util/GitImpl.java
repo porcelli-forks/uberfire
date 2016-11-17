@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CloneCommand;
@@ -108,6 +109,7 @@ public class GitImpl implements Git {
     }
 
     private final org.eclipse.jgit.api.Git git;
+    private final AtomicBoolean isHeadInitialized = new AtomicBoolean( false );
 
     public GitImpl( final org.eclipse.jgit.api.Git git ) {
         this.git = git;
@@ -323,6 +325,16 @@ public class GitImpl implements Git {
     public List<PathInfo> listPathContent( final String branchName,
                                            final String path ) {
         return retryIfNeeded( RuntimeException.class, () -> new ListPathContent( this, branchName, path ).execute() );
+    }
+
+    @Override
+    public boolean isHEADInitialized() {
+        return isHeadInitialized.get();
+    }
+
+    @Override
+    public void setHeadAsInitialized() {
+        isHeadInitialized.set( true );
     }
 
     //just for test purposes

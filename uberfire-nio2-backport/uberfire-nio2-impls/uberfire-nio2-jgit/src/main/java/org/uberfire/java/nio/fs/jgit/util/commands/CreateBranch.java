@@ -16,13 +16,12 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 
 /**
  * TODO: update me
  */
-public class CreateBranch {
+public class CreateBranch extends BaseRefUpdateCommand {
 
     private final GitImpl git;
     private final String source;
@@ -39,11 +38,10 @@ public class CreateBranch {
 
     public void execute() {
         try {
-            git._branchCreate().setName( target ).setStartPoint( source ).call();
-        } catch ( GitAPIException e ) {
+            refUpdate( git, target, git.resolveRevCommit( git.resolveObjectIds( source ).get( 0 ) ) );
+        } catch ( final Exception e ) {
             throw new RuntimeException( e );
         }
-
     }
 
 }

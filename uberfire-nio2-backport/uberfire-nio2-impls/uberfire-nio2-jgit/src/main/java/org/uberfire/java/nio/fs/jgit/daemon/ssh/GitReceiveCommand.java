@@ -56,7 +56,7 @@ public class GitReceiveCommand extends BaseGitCommand {
             rp.receive( in, out, err );
             fileSystem.getGit().gc();
             fileSystem.resetCommitCount();
-        } catch ( Exception ex ) {
+        } catch ( final Exception ignored ) {
         }
     }
 }

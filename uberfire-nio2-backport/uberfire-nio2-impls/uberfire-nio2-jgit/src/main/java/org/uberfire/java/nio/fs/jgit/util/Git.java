@@ -44,105 +44,109 @@ import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 
 public interface Git {
 
-    static Git createRepository( File repoDir ) {
+    static Git createRepository( final File repoDir ) {
         return new CreateRepository( repoDir ).execute().get();
     }
 
-    static Git createRepository( File repoDir,
-                                 File hookDir ) {
+    static Git createRepository( final File repoDir,
+                                 final File hookDir ) {
         return new CreateRepository( repoDir, hookDir ).execute().get();
     }
 
-    static Git fork( File gitRepoContainerDir,
-                     String origin,
-                     String name,
-                     CredentialsProvider credential ) throws InvalidRemoteException {
+    static Git fork( final File gitRepoContainerDir,
+                     final String origin,
+                     final String name,
+                     final CredentialsProvider credential ) throws InvalidRemoteException {
         return new Fork( gitRepoContainerDir, origin, name, credential ).execute();
     }
 
-    static Git clone( File repoDest,
-                      String origin,
-                      boolean b,
-                      CredentialsProvider credential ) throws InvalidRemoteException {
+    static Git clone( final File repoDest,
+                      final String origin,
+                      final boolean b,
+                      final CredentialsProvider credential ) throws InvalidRemoteException {
         return new Clone( repoDest, origin, true, credential ).execute().get();
     }
 
-    void deleteRef( Ref ref );
+    void deleteRef( final Ref ref );
 
-    Ref getRef( String ref );
+    Ref getRef( final String ref );
 
-    void push( CredentialsProvider credentialsProvider,
-               Pair<String, String> remote,
-               boolean force,
-               Collection<RefSpec> refSpecs ) throws InvalidRemoteException;
+    void push( final CredentialsProvider credentialsProvider,
+               final Pair<String, String> remote,
+               final boolean force,
+               final Collection<RefSpec> refSpecs ) throws InvalidRemoteException;
 
     void gc();
 
-    RevCommit getLastCommit( String refName );
+    RevCommit getLastCommit( final String refName );
 
-    RevCommit getLastCommit( Ref ref ) throws IOException;
+    RevCommit getLastCommit( final Ref ref ) throws IOException;
 
-    List<RevCommit> listCommits( Ref ref,
-                                 String path ) throws IOException, GitAPIException;
+    List<RevCommit> listCommits( final Ref ref,
+                                 final String path ) throws IOException, GitAPIException;
 
-    List<RevCommit> listCommits( ObjectId startRange,
-                                 ObjectId endRange );
+    List<RevCommit> listCommits( final ObjectId startRange,
+                                 final ObjectId endRange );
 
     Repository getRepository();
 
-    ObjectId getTreeFromRef( String treeRef );
+    ObjectId getTreeFromRef( final String treeRef );
 
-    void fetch( CredentialsProvider credential,
-                Pair<String, String> remote,
-                Collection<RefSpec> refSpecs ) throws InvalidRemoteException;
+    void fetch( final CredentialsProvider credential,
+                final Pair<String, String> remote,
+                final Collection<RefSpec> refSpecs ) throws InvalidRemoteException;
 
-    void syncRemote( Pair<String, String> remote ) throws InvalidRemoteException;
+    void syncRemote( final Pair<String, String> remote ) throws InvalidRemoteException;
 
-    List<String> merge( String source,
-                        String target );
+    List<String> merge( final String source,
+                        final String target );
 
-    void cherryPick( JGitPathImpl target,
-                     String... commits );
+    void cherryPick( final JGitPathImpl target,
+                     final String... commits );
 
-    void cherryPick( String targetBranch,
-                     String[] commitsIDs );
+    void cherryPick( final String targetBranch,
+                     final String... commitsIDs );
 
-    void createRef( String source,
-                    String target );
+    void createRef( final String source,
+                    final String target );
 
-    List<FileDiff> diffRefs( String branchA,
-                             String branchB );
+    List<FileDiff> diffRefs( final String branchA,
+                             final String branchB );
 
-    void squash( String branch,
-                 String startCommit,
-                 String commitMessage );
+    void squash( final String branch,
+                 final String startCommit,
+                 final String commitMessage );
 
-    boolean commit( String branchName,
-                    CommitInfo commitInfo,
-                    boolean amend,
-                    ObjectId originId,
-                    CommitContent content );
+    boolean commit( final String branchName,
+                    final CommitInfo commitInfo,
+                    final boolean amend,
+                    final ObjectId originId,
+                    final CommitContent content );
 
-    List<DiffEntry> listDiffs( ObjectId refA,
-                               ObjectId refB );
+    List<DiffEntry> listDiffs( final ObjectId refA,
+                               final ObjectId refB );
 
-    InputStream blobAsInputStream( String treeRef,
-                                   String path );
+    InputStream blobAsInputStream( final String treeRef,
+                                   final String path );
 
-    RevCommit getFirstCommit( Ref ref ) throws IOException;
+    RevCommit getFirstCommit( final Ref ref ) throws IOException;
 
     List<Ref> listRefs();
 
-    List<ObjectId> resolveObjectIds( String... commits );
+    List<ObjectId> resolveObjectIds( final String... commits );
 
-    RevCommit resolveRevCommit( ObjectId objectId ) throws IOException;
+    RevCommit resolveRevCommit( final ObjectId objectId ) throws IOException;
 
-    List<RefSpec> updateRemoteConfig( Pair<String, String> remote,
-                                      Collection<RefSpec> refSpecs ) throws IOException, URISyntaxException;
+    List<RefSpec> updateRemoteConfig( final Pair<String, String> remote,
+                                      final Collection<RefSpec> refSpecs ) throws IOException, URISyntaxException;
 
-    PathInfo getPathInfo( String branchName,
-                          String path );
+    PathInfo getPathInfo( final String branchName,
+                          final String path );
 
-    List<PathInfo> listPathContent( String branchName,
-                                    String path );
+    List<PathInfo> listPathContent( final String branchName,
+                                    final String path );
+
+    boolean isHEADInitialized();
+
+    void setHeadAsInitialized();
 }

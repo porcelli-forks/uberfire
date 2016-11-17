@@ -42,13 +42,9 @@ public class GetLastCommit {
     }
 
     public RevCommit execute() throws IOException {
-        try {
-            if ( ref == null ) {
-                return null;
-            }
-            return git.resolveRevCommit( ref.getTarget().getObjectId() );
-        } catch ( final Exception ex ) {
-            throw ex;
+        if ( ref == null ) {
+            return null;
         }
+        return git.resolveRevCommit( ref.getTarget().getObjectId() );
     }
 }

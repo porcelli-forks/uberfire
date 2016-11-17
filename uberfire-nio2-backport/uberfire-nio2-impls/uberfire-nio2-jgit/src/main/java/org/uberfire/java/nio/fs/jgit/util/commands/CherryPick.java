@@ -71,12 +71,11 @@ public class CherryPick extends BaseRefUpdateCommand {
                             MessageFormat.format(
                                     JGitText.get().canOnlyCherryPickCommitsWithOneParent,
                                     srcCommit.name(),
-                                    Integer.valueOf( srcCommit.getParentCount() ) ) ) );
+                                    srcCommit.getParentCount() ) ) );
                 }
 
-                refUpdate( git.getRepository(),
+                refUpdate( git,
                            targetBranch,
-                           newHead,
                            srcCommit );
 
                 newHead = srcCommit;

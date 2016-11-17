@@ -39,11 +39,7 @@ public abstract class DaemonService {
     DaemonService( final String cmdName,
                    final String cfgName ) {
         command = cmdName.startsWith( "git-" ) ? cmdName : "git-" + cmdName;
-        configKey = new SectionParser<ServiceConfig>() {
-            public ServiceConfig parse( final Config cfg ) {
-                return new ServiceConfig( DaemonService.this, cfg, cfgName );
-            }
-        };
+        configKey = cfg -> new ServiceConfig( DaemonService.this, cfg, cfgName );
         overridable = true;
     }
 

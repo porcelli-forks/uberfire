@@ -37,7 +37,7 @@ public class PathInfo {
     public PathInfo( final ObjectId objectId,
                      final String path,
                      final FileMode fileMode,
-                     long size ) {
+                     final long size ) {
         this( objectId, path, convert( fileMode ) );
     }
 
@@ -50,7 +50,7 @@ public class PathInfo {
     public PathInfo( final ObjectId objectId,
                      final String path,
                      final PathType pathType,
-                     long size ) {
+                     final long size ) {
         this.objectId = objectId;
         this.path = path;
         this.pathType = pathType;

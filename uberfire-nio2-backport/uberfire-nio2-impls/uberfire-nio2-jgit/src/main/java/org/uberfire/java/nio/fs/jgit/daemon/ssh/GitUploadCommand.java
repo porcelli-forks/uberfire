@@ -63,7 +63,7 @@ public class GitUploadCommand extends BaseGitCommand {
 
         try {
             up.upload( in, out, err );
-        } catch ( IOException e ) {
+        } catch ( final IOException ignored ) {
         }
     }
 

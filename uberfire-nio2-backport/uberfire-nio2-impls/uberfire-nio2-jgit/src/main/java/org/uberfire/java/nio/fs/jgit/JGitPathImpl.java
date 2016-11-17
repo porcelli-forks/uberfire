@@ -82,9 +82,9 @@ public class JGitPathImpl extends AbstractPath<JGitFileSystem>
 
     @Override
     protected Path newRoot( final JGitFileSystem fs,
-                            String substring,
+                            final String substring,
                             final String host,
-                            boolean realPath ) {
+                            final boolean realPath ) {
         return new JGitPathImpl( fs, substring, host, null, true, realPath, true );
     }
 
@@ -101,21 +101,21 @@ public class JGitPathImpl extends AbstractPath<JGitFileSystem>
                                        final String path,
                                        final String host,
                                        final ObjectId id,
-                                       boolean isRealPath ) {
+                                       final boolean isRealPath ) {
         return new JGitPathImpl( fs, setupPath( path ), setupHost( host ), id, false, isRealPath, false );
     }
 
     public static JGitPathImpl create( final JGitFileSystem fs,
                                        final String path,
                                        final String host,
-                                       boolean isRealPath ) {
+                                       final boolean isRealPath ) {
         return new JGitPathImpl( fs, setupPath( path ), setupHost( host ), null, false, isRealPath, false );
     }
 
     public static JGitPathImpl createRoot( final JGitFileSystem fs,
                                            final String path,
                                            final String host,
-                                           boolean isRealPath ) {
+                                           final boolean isRealPath ) {
         return new JGitPathImpl( fs, setupPath( path ), setupHost( host ), null, true, isRealPath, true );
     }
 
@@ -179,8 +179,8 @@ public class JGitPathImpl extends AbstractPath<JGitFileSystem>
         return false;
     }
 
-    private static long internalCopy( InputStream in,
-                                      OutputStream out ) {
+    private static long internalCopy( final InputStream in,
+                                      final OutputStream out ) {
         long read = 0L;
         byte[] buf = new byte[ BUFFER_SIZE ];
         int n;

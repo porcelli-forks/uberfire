@@ -49,7 +49,7 @@ public class GetFirstCommit {
             rw.sort( RevSort.REVERSE );
             rw.markStart( root );
             return rw.next();
-        } catch ( IOException e ) {
+        } catch ( final IOException ignored ) {
         }
         return null;
     }

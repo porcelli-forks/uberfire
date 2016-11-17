@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.merge.MergeStrategy;
@@ -73,7 +74,8 @@ public class Merge {
         final List<RevCommit> commits = git.listCommits( commonAncestor, lastSourceCommit );
 
         Collections.reverse( commits );
-        final String[] commitsIDs = commits.stream().map( elem -> elem.getName() ).toArray( String[]::new );
+
+        final String[] commitsIDs = commits.stream().map( AnyObjectId::getName ).toArray( String[]::new );
 
         canMerge( repo, commonAncestor, lastSourceCommit, lastTargetCommit, sourceBranch, targetBranch );
 

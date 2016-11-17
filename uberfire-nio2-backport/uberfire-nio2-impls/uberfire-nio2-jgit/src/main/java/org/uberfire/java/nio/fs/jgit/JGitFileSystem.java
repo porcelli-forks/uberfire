@@ -539,7 +539,7 @@ public class JGitFileSystem implements FileSystem,
     public void lock() {
         try {
             lock.lock();
-        } catch ( java.lang.InterruptedException e ) {
+        } catch ( final java.lang.InterruptedException ignored ) {
         }
     }
 

@@ -40,9 +40,6 @@ import org.uberfire.java.nio.fs.jgit.util.model.RevertCommitContent;
 
 import static java.util.Collections.*;
 
-/**
- * TODO: update me
- */
 public class Commit extends BaseRefUpdateCommand {
 
     private final Git git;
@@ -119,7 +116,7 @@ public class Commit extends BaseRefUpdateCommand {
                 commit.setMessage( commitInfo.getMessage() );
                 if ( headId != null ) {
                     if ( amend ) {
-                        final RevCommit previousCommit = new ResolveRevCommit( git.getRepository(), headId ).execute();
+                        final RevCommit previousCommit = git.resolveRevCommit( headId );
                         final List<RevCommit> p = Arrays.asList( previousCommit.getParents() );
                         reverse( p );
                         commit.setParentIds( p );
@@ -132,10 +129,9 @@ public class Commit extends BaseRefUpdateCommand {
                 final ObjectId commitId = odi.insert( commit );
                 odi.flush();
 
-                refUpdate( git.getRepository(),
+                refUpdate( git,
                            branchName,
-                           headId,
-                           new ResolveRevCommit( git.getRepository(), commitId ).execute() );
+                           git.resolveRevCommit( commitId ) );
             } else {
                 hadEffecitiveCommit = false;
             }

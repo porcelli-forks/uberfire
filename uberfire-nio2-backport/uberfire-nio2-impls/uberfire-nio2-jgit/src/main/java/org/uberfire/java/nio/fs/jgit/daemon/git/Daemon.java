@@ -31,10 +31,13 @@ import java.util.zip.Deflater;
 
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.internal.JGitText;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.pack.PackConfig;
+import org.eclipse.jgit.transport.ReceivePack;
 import org.eclipse.jgit.transport.ServiceMayNotContinueException;
 import org.eclipse.jgit.transport.UploadPack;
+import org.eclipse.jgit.transport.resolver.ReceivePackFactory;
 import org.eclipse.jgit.transport.resolver.RepositoryResolver;
 import org.eclipse.jgit.transport.resolver.ServiceNotAuthorizedException;
 import org.eclipse.jgit.transport.resolver.ServiceNotEnabledException;
@@ -50,11 +53,6 @@ import static org.uberfire.commons.validation.PortablePreconditions.*;
  */
 public class Daemon {
 
-    /**
-     * 9418: IANA assigned port number for Git.
-     */
-    public static final int DEFAULT_PORT = 9418;
-
     private static final int BACKLOG = 5;
 
     private InetSocketAddress myAddress;
@@ -69,6 +67,8 @@ public class Daemon {
 
     private volatile UploadPackFactory<DaemonClient> uploadPackFactory;
 
+    private volatile ReceivePackFactory<DaemonClient> receivePackFactory;
+
     private ServerSocket listenSock = null;
 
     private final Executor acceptThreadPool;
@@ -82,7 +82,7 @@ public class Daemon {
      * restarted, a new task will be submitted to this pool. When the daemon is stopped, the task completes.
      */
     public Daemon( final InetSocketAddress addr,
-                   Executor acceptThreadPool ) {
+                   final Executor acceptThreadPool ) {
         myAddress = addr;
         this.acceptThreadPool = checkNotNull( "acceptThreadPool", acceptThreadPool );
 
@@ -99,6 +99,22 @@ public class Daemon {
             return up;
         };
 
+        receivePackFactory = ( req, db ) -> {
+            final ReceivePack rp = new ReceivePack( db );
+
+            final InetAddress peer = req.getRemoteAddress();
+            String host = peer.getCanonicalHostName();
+            if ( host == null ) {
+                host = peer.getHostAddress();
+            }
+            final String name = "anonymous";
+            final String email = name + "@" + host;
+            rp.setRefLogIdent( new PersonIdent( name, email ) );
+            rp.setTimeout( getTimeout() );
+
+            return rp;
+        };
+
         services = new DaemonService[]{ new DaemonService( "upload-pack", "uploadpack" ) {
             {
                 setEnabled( true );
@@ -109,10 +125,25 @@ public class Daemon {
                                     final Repository db ) throws IOException,
                     ServiceNotEnabledException,
                     ServiceNotAuthorizedException {
-                UploadPack up = uploadPackFactory.create( dc, db );
-                InputStream in = dc.getInputStream();
-                OutputStream out = dc.getOutputStream();
+                final UploadPack up = uploadPackFactory.create( dc, db );
+                final InputStream in = dc.getInputStream();
+                final OutputStream out = dc.getOutputStream();
                 up.upload( in, out, null );
+            }
+        }, new DaemonService( "receive-pack", "receivepack" ) {
+            {
+                setEnabled( true );
+            }
+
+            @Override
+            protected void execute( final DaemonClient dc,
+                                    final Repository db ) throws IOException,
+                    ServiceNotEnabledException,
+                    ServiceNotAuthorizedException {
+                final ReceivePack rp = receivePackFactory.create( dc, db );
+                final InputStream in = dc.getInputStream();
+                final OutputStream out = dc.getOutputStream();
+                rp.receive( in, out, null );
             }
         } };
     }
@@ -265,12 +296,8 @@ public class Daemon {
             public void run() {
                 try {
                     dc.execute( s );
-                } catch ( ServiceNotEnabledException e ) {
+                } catch ( ServiceNotEnabledException | ServiceNotAuthorizedException | IOException e ) {
                     // Ignored. Client cannot use this repository.
-                } catch ( ServiceNotAuthorizedException e ) {
-                    // Ignored. Client cannot use this repository.
-                } catch ( IOException e ) {
-                    // Ignore unexpected IO exceptions from clients
                 } finally {
                     try {
                         s.getInputStream().close();
