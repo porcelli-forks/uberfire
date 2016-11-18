@@ -23,9 +23,11 @@ import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
 
+import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.internal.ketch.KetchLeader;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -149,4 +151,9 @@ public interface Git {
     boolean isHEADInitialized();
 
     void setHeadAsInitialized();
+
+    void refUpdate( final String branch,
+                    final RevCommit commit ) throws IOException, ConcurrentRefUpdateException;
+
+    KetchLeader getKetchLeader();
 }

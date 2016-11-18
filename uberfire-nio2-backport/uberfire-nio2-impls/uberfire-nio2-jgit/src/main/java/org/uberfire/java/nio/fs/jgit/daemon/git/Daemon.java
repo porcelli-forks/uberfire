@@ -25,12 +25,18 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.URISyntaxException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Deflater;
 
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.internal.JGitText;
+import org.eclipse.jgit.internal.ketch.KetchLeader;
+import org.eclipse.jgit.internal.ketch.KetchLeaderCache;
+import org.eclipse.jgit.internal.ketch.KetchPreReceive;
+import org.eclipse.jgit.internal.ketch.KetchSystem;
+import org.eclipse.jgit.internal.ketch.KetchText;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.pack.PackConfig;
@@ -99,7 +105,10 @@ public class Daemon {
             return up;
         };
 
-        receivePackFactory = ( req, db ) -> {
+        final KetchSystem system = new KetchSystem();
+        final KetchLeaderCache leaders = new KetchLeaderCache( system );
+
+        final ReceivePackFactory<DaemonClient> factory = ( req, db ) -> {
             final ReceivePack rp = new ReceivePack( db );
 
             final InetAddress peer = req.getRemoteAddress();
@@ -112,6 +121,19 @@ public class Daemon {
             rp.setRefLogIdent( new PersonIdent( name, email ) );
             rp.setTimeout( getTimeout() );
 
+            return rp;
+        };
+
+        receivePackFactory = ( req, repo ) -> {
+            ReceivePack rp = factory.create( req, repo );
+            KetchLeader leader;
+            try {
+                leader = leaders.get( repo );
+            } catch ( URISyntaxException err ) {
+                throw new ServiceNotEnabledException(
+                        KetchText.get().invalidFollowerUri, err );
+            }
+            rp.setPreReceiveHook( new KetchPreReceive( leader ) );
             return rp;
         };
 

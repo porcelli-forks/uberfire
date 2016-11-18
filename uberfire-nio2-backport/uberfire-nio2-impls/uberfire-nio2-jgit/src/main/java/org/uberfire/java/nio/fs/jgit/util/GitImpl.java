@@ -34,9 +34,11 @@ import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.RemoteListCommand;
+import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.internal.ketch.KetchLeader;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -69,6 +71,7 @@ import org.uberfire.java.nio.fs.jgit.util.commands.ListPathContent;
 import org.uberfire.java.nio.fs.jgit.util.commands.ListRefs;
 import org.uberfire.java.nio.fs.jgit.util.commands.Merge;
 import org.uberfire.java.nio.fs.jgit.util.commands.Push;
+import org.uberfire.java.nio.fs.jgit.util.commands.RefUpdateCommand;
 import org.uberfire.java.nio.fs.jgit.util.commands.ResolveObjectIds;
 import org.uberfire.java.nio.fs.jgit.util.commands.ResolveRevCommit;
 import org.uberfire.java.nio.fs.jgit.util.commands.Squash;
@@ -109,11 +112,17 @@ public class GitImpl implements Git {
     }
 
     private final org.eclipse.jgit.api.Git git;
+    private final KetchLeader ketchLeader;
     private final AtomicBoolean isHeadInitialized = new AtomicBoolean( false );
 
     public GitImpl( final org.eclipse.jgit.api.Git git ) {
+        this( git, null );
+    }
+
+    public GitImpl( final org.eclipse.jgit.api.Git git,
+                    final KetchLeader ketchLeader ) {
         this.git = git;
-//        HttpTransport.setConnectionFactory( new HttpClientConnectionFactory() );
+        this.ketchLeader = ketchLeader;
     }
 
     @Override
@@ -335,6 +344,18 @@ public class GitImpl implements Git {
     @Override
     public void setHeadAsInitialized() {
         isHeadInitialized.set( true );
+    }
+
+    @Override
+    public void refUpdate( final String branch,
+                           final RevCommit commit )
+            throws IOException, ConcurrentRefUpdateException {
+        new RefUpdateCommand( this, branch, commit ).execute();
+    }
+
+    @Override
+    public KetchLeader getKetchLeader() {
+        return ketchLeader;
     }
 
     //just for test purposes

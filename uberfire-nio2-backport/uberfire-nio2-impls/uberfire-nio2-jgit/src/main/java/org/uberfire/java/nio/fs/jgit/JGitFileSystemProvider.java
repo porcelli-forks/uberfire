@@ -623,7 +623,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
         if ( daemonService == null || !daemonService.isRunning() ) {
             daemonService = new Daemon( new InetSocketAddress( daemonHostAddr, daemonPort ),
                                         new ExecutorWrapper( SimpleAsyncExecutorService.getUnmanagedInstance() ) );
-            daemonService.setRepositoryResolver( new RepositoryResolverImpl<DaemonClient>() );
+            daemonService.setRepositoryResolver( new RepositoryResolverImpl<>() );
             try {
                 daemonService.start();
             } catch ( java.io.IOException e ) {

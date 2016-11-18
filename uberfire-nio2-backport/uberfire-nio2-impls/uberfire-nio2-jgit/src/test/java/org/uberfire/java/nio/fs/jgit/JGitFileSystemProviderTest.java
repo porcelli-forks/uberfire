@@ -1495,26 +1495,6 @@ public class JGitFileSystemProviderTest extends AbstractTestInfra {
         }
     }
 
-//    @Test
-//    public void testTFSClone() throws IOException {
-//
-//        final URI newRepo = URI.create( "git://my-tfs-repo-name" );
-//
-//        final Map<String, Object> env = new HashMap<String, Object>() {{
-//            put( JGitFileSystemProvider.GIT_ENV_KEY_DEFAULT_REMOTE_NAME, "http://10.64.220.16:8080/tfs/DefaultCollection/_git/MyProject1" );
-//            put( JGitFileSystemProvider.GIT_ENV_KEY_USER_NAME, "Administrator" );
-//            put( JGitFileSystemProvider.GIT_ENV_KEY_PASSWORD, "RedHat1!\n" );
-//        }};
-//
-//        final FileSystem fs = provider.newFileSystem( newRepo, env );
-//
-//        assertThat( fs ).isNotNull();
-//
-//        assertThat( fs.getRootDirectories() ).hasSize( 1 );
-//
-//        assertThat( fs.getPath( "README.md" ).toFile() ).isNotNull().exists();
-//    }
-
     private interface MyAttrs extends BasicFileAttributes {
 
     }

@@ -21,7 +21,7 @@ import org.uberfire.java.nio.fs.jgit.util.GitImpl;
 /**
  * TODO: update me
  */
-public class CreateBranch extends BaseRefUpdateCommand {
+public class CreateBranch {
 
     private final GitImpl git;
     private final String source;
@@ -38,7 +38,7 @@ public class CreateBranch extends BaseRefUpdateCommand {
 
     public void execute() {
         try {
-            refUpdate( git, target, git.resolveRevCommit( git.resolveObjectIds( source ).get( 0 ) ) );
+            git.refUpdate( target, git.resolveRevCommit( git.resolveObjectIds( source ).get( 0 ) ) );
         } catch ( final Exception e ) {
             throw new RuntimeException( e );
         }

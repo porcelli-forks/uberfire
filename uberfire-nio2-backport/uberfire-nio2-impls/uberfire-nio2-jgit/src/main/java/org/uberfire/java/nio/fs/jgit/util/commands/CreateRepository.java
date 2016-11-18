@@ -49,6 +49,9 @@ public class CreateRepository {
             final StoredConfig cfg = _git.getRepository().getConfig();
             cfg.setInt( "core", null, "repositoryformatversion", 1 );
             cfg.setString( "extensions", null, "refsStorage", "reftree" );
+
+            tempKetch( cfg );
+
             cfg.save();
 
             final Repository repo = new FileRepositoryBuilder()
@@ -77,5 +80,16 @@ public class CreateRepository {
         } catch ( final Exception ex ) {
             throw new IOException( ex );
         }
+    }
+
+    private void tempKetch( final StoredConfig cfg ) {
+        cfg.setString( "ketch", null, "name", "A" );
+        cfg.setString( "remote", "A", "ketch-type", "FULL" );
+
+        cfg.setString( "remote", "B", "url", "git://127.0.0.1:9423/" + repoDir.toPath().getFileName() );
+        cfg.setString( "remote", "B", "ketch-type", "FULL" );
+
+        cfg.setString( "remote", "C", "url", "git://127.0.0.1:9424/" + repoDir.toPath().getFileName() );
+        cfg.setString( "remote", "C", "ketch-type", "FULL" );
     }
 }

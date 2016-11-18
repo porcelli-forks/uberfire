@@ -17,10 +17,14 @@
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.internal.JGitText;
+import org.eclipse.jgit.internal.ketch.Proposal;
 import org.eclipse.jgit.internal.storage.reftree.Command;
 import org.eclipse.jgit.internal.storage.reftree.RefTree;
 import org.eclipse.jgit.internal.storage.reftree.RefTreeDatabase;
@@ -41,29 +45,41 @@ import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.uberfire.java.nio.fs.jgit.util.Git;
+import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
 import static org.eclipse.jgit.lib.Constants.*;
 import static org.eclipse.jgit.lib.Ref.Storage.*;
+import static org.eclipse.jgit.transport.ReceiveCommand.Result.*;
 
-public abstract class BaseRefUpdateCommand {
+public class RefUpdateCommand {
 
-    protected void refUpdate( final Git git,
-                              final String branchName,
-                              final RevCommit commit ) throws java.io.IOException, ConcurrentRefUpdateException {
-        update( git.getRepository(), Constants.R_HEADS + branchName, commit );
+    private final Git git;
+    private final String name;
+    private final RevCommit commit;
+
+    public RefUpdateCommand( final Git git,
+                             final String branchName,
+                             final RevCommit commit ) {
+        this.git = git;
+        this.name = branchName;
+        this.commit = commit;
+    }
+
+    public void execute() throws java.io.IOException, ConcurrentRefUpdateException {
+        update( git.getRepository(), Constants.R_HEADS + name, commit );
         //this `initialization` aims to be temporary
-        // -> without this c git can't find master when cloning repos
-        if ( branchName.equals( MASTER ) && !git.isHEADInitialized() ) {
+        // -> without this cgit can't find master when cloning repos
+        if ( name.equals( MASTER ) && !git.isHEADInitialized() ) {
             synchronized ( git.getRepository() ) {
-                symRef( git, HEAD, Constants.R_HEADS + branchName );
+                symRef( git, HEAD, Constants.R_HEADS + name );
                 git.setHeadAsInitialized();
             }
         }
     }
 
-    protected void symRef( final Git git,
-                           final String name,
-                           final String dst )
+    private void symRef( final Git git,
+                         final String name,
+                         final String dst )
             throws java.io.IOException {
         commit( git.getRepository(), null, ( reader, tree ) -> {
             Ref old = tree.exactRef( reader, name );
@@ -90,11 +106,28 @@ public abstract class BaseRefUpdateCommand {
             throws IOException {
         commit( repo, commit, ( reader, refTree ) -> {
             final Ref old = refTree.exactRef( reader, name );
-            final Command n;
+            final List<Command> n = new ArrayList<>( 1 );
             try ( RevWalk rw = new RevWalk( repo ) ) {
-                n = new Command( old, toRef( rw, commit, name, true ) );
+                n.add( new Command( old, toRef( rw, commit, name, true ) ) );
+                if ( git.getKetchLeader() != null ) {
+                    final Proposal proposal = new Proposal( n )
+                            .setAuthor( commit.getAuthorIdent() )
+                            .setMessage( "push" );
+                    git.getKetchLeader().queueProposal( proposal );
+                }
+//                if ( proposal.isDone() ) {
+//                }
+            } catch ( final IOException | InterruptedException e ) {
+                String msg = JGitText.get().transactionAborted;
+                for ( Command cmd : n ) {
+                    if ( cmd.getResult() == NOT_ATTEMPTED ) {
+                        cmd.setResult( REJECTED_OTHER_REASON, msg );
+                    }
+                }
+                throw new GitException( "Error" );
+                //log.error(msg, e);
             }
-            return refTree.apply( Collections.singleton( n ) );
+            return refTree.apply( n );
         } );
     }
 
@@ -151,25 +184,27 @@ public abstract class BaseRefUpdateCommand {
                     refUpdate.setExpectedOldObjectId( ObjectId.zeroId() );
                 }
 
-                fun.apply( reader, tree );
-                cb.setTreeId( tree.writeTree( inserter ) );
-                if ( original != null ) {
-                    cb.setAuthor( original.getAuthorIdent() );
-                    cb.setCommitter( original.getAuthorIdent() );
-                } else {
-                    final PersonIdent personIdent = new PersonIdent( "user", "user@example.com" );
-                    cb.setAuthor( personIdent );
-                    cb.setCommitter( personIdent );
+                if ( fun.apply( reader, tree ) ) {
+                    cb.setTreeId( tree.writeTree( inserter ) );
+                    if ( original != null ) {
+                        cb.setAuthor( original.getAuthorIdent() );
+                        cb.setCommitter( original.getAuthorIdent() );
+                    } else {
+                        final PersonIdent personIdent = new PersonIdent( "user", "user@example.com" );
+                        cb.setAuthor( personIdent );
+                        cb.setCommitter( personIdent );
+                    }
+                    refUpdate.setNewObjectId( inserter.insert( cb ) );
+                    inserter.flush();
+                    switch ( refUpdate.update( rw ) ) {
+                        case NEW:
+                        case FAST_FORWARD:
+                            break;
+                        default:
+                            throw new RuntimeException( refUpdate.getName() );
+                    }
                 }
-                refUpdate.setNewObjectId( inserter.insert( cb ) );
-                inserter.flush();
-                switch ( refUpdate.update( rw ) ) {
-                    case NEW:
-                    case FAST_FORWARD:
-                        break;
-                    default:
-                        throw new RuntimeException( refUpdate.getName() );
-                }
+
             }
         }
     }

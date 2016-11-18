@@ -39,7 +39,7 @@ import static java.util.stream.StreamSupport.*;
  * It return an Empty Optional because is not necessary to return anything.
  * It throws a {@link GitException} if something bad happens.
  */
-public class Squash extends BaseRefUpdateCommand {
+public class Squash {
 
     private final String branch;
     private final GitImpl git;
@@ -76,9 +76,7 @@ public class Squash extends BaseRefUpdateCommand {
 
         try ( final ObjectInserter odi = repo.newObjectInserter() ) {
             final RevCommit squashedCommit = git.resolveRevCommit( odi.insert( commitBuilder ) );
-            refUpdate( git,
-                       branch,
-                       squashedCommit );
+            git.refUpdate( branch, squashedCommit );
         } catch ( ConcurrentRefUpdateException | IOException e ) {
             throw new GitException( "Error on executing squash.", e );
         }

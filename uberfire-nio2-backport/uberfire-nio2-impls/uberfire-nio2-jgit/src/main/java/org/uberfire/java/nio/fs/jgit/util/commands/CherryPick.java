@@ -31,7 +31,7 @@ import org.uberfire.java.nio.fs.jgit.util.Git;
 /**
  * TODO: update me
  */
-public class CherryPick extends BaseRefUpdateCommand {
+public class CherryPick {
 
     private final Git git;
     private final String targetBranch;
@@ -70,9 +70,7 @@ public class CherryPick extends BaseRefUpdateCommand {
                                     srcCommit.getParentCount() ) ) );
                 }
 
-                refUpdate( git,
-                           targetBranch,
-                           srcCommit );
+                git.refUpdate( targetBranch, srcCommit );
             }
         } catch ( final java.io.IOException e ) {
             throw new IOException( new JGitInternalException(

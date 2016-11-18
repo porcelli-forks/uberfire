@@ -40,7 +40,7 @@ import org.uberfire.java.nio.fs.jgit.util.model.RevertCommitContent;
 
 import static java.util.Collections.*;
 
-public class Commit extends BaseRefUpdateCommand {
+public class Commit {
 
     private final Git git;
     private final String branchName;
@@ -129,9 +129,7 @@ public class Commit extends BaseRefUpdateCommand {
                 final ObjectId commitId = odi.insert( commit );
                 odi.flush();
 
-                refUpdate( git,
-                           branchName,
-                           git.resolveRevCommit( commitId ) );
+                git.refUpdate( branchName, git.resolveRevCommit( commitId ) );
             } else {
                 hadEffecitiveCommit = false;
             }
