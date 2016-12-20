@@ -16,7 +16,10 @@
 
 package org.uberfire.java.nio.fs.jgit.util.commands;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +50,8 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.uberfire.java.nio.fs.jgit.util.Git;
 import org.uberfire.java.nio.fs.jgit.util.exceptions.GitException;
 
+import static java.util.concurrent.TimeUnit.*;
+import static org.eclipse.jgit.internal.ketch.Proposal.State.*;
 import static org.eclipse.jgit.lib.Constants.*;
 import static org.eclipse.jgit.lib.Ref.Storage.*;
 import static org.eclipse.jgit.transport.ReceiveCommand.Result.*;
@@ -86,37 +91,27 @@ public class RefUpdateCommand {
             Ref newx = tree.exactRef( reader, dst );
             final Command n;
             if ( newx != null ) {
-                n = new Command(
-                        old,
-                        new SymbolicRef( name, newx ) );
+                n = new Command( old, new SymbolicRef( name, newx ) );
             } else {
-                n = new Command(
-                        old,
-                        new SymbolicRef(
-                                name,
-                                new ObjectIdRef.Unpeeled( Ref.Storage.NEW, dst, null ) ) );
+                n = new Command( old, new SymbolicRef( name,
+                                                       new ObjectIdRef.Unpeeled( Ref.Storage.NEW, dst, null ) ) );
             }
             return tree.apply( Collections.singleton( n ) );
         } );
     }
 
-    private void update( final Repository repo,
-                         final String name,
-                         final RevCommit commit )
+    private void update( final Repository _repo,
+                         final String _name,
+                         final RevCommit _commit )
             throws IOException {
-        commit( repo, commit, ( reader, refTree ) -> {
-            final Ref old = refTree.exactRef( reader, name );
+        commit( _repo, _commit, ( reader, refTree ) -> {
+            final Ref old = refTree.exactRef( reader, _name );
             final List<Command> n = new ArrayList<>( 1 );
-            try ( RevWalk rw = new RevWalk( repo ) ) {
-                n.add( new Command( old, toRef( rw, commit, name, true ) ) );
-                if ( git.getKetchLeader() != null ) {
-                    final Proposal proposal = new Proposal( n )
-                            .setAuthor( commit.getAuthorIdent() )
-                            .setMessage( "push" );
-                    git.getKetchLeader().queueProposal( proposal );
+            try ( RevWalk rw = new RevWalk( _repo ) ) {
+                n.add( new Command( old, toRef( rw, _commit, _name, true ) ) );
+                if ( git.isKetchEnabled() ) {
+                    proposeKetch( n, _commit );
                 }
-//                if ( proposal.isDone() ) {
-//                }
             } catch ( final IOException | InterruptedException e ) {
                 String msg = JGitText.get().transactionAborted;
                 for ( Command cmd : n ) {
@@ -129,6 +124,48 @@ public class RefUpdateCommand {
             }
             return refTree.apply( n );
         } );
+    }
+
+    private void proposeKetch( final List<Command> n,
+                               final RevCommit _commit ) throws IOException, InterruptedException {
+        final Proposal proposal = new Proposal( n )
+                .setAuthor( _commit.getAuthorIdent() )
+                .setMessage( "push" );
+        git.getKetchLeader().queueProposal( proposal );
+        if ( proposal.isDone() ) {
+            // This failed fast, e.g. conflict or bad precondition.
+            throw new GitException( "Error" );
+        }
+        if ( proposal.getState() == QUEUED ) {
+            waitForQueue( proposal );
+        }
+        if ( !proposal.isDone() ) {
+            waitForPropose( proposal );
+        }
+    }
+
+    private void waitForQueue( final Proposal proposal )
+            throws InterruptedException {
+        while ( !proposal.awaitStateChange( QUEUED, 250, MILLISECONDS ) ) {
+            System.out.println( "waiting queue..." );
+        }
+        switch ( proposal.getState() ) {
+            case RUNNING:
+            default:
+                break;
+
+            case EXECUTED:
+                break;
+
+            case ABORTED:
+                break;
+        }
+    }
+
+    private void waitForPropose( final Proposal proposal ) throws InterruptedException {
+        while ( !proposal.await( 250, MILLISECONDS ) ) {
+            System.out.println( "waiting propose..." );
+        }
     }
 
     private static Ref toRef( final RevWalk rw,
@@ -185,26 +222,32 @@ public class RefUpdateCommand {
                 }
 
                 if ( fun.apply( reader, tree ) ) {
-                    cb.setTreeId( tree.writeTree( inserter ) );
-                    if ( original != null ) {
-                        cb.setAuthor( original.getAuthorIdent() );
-                        cb.setCommitter( original.getAuthorIdent() );
-                    } else {
-                        final PersonIdent personIdent = new PersonIdent( "user", "user@example.com" );
-                        cb.setAuthor( personIdent );
-                        cb.setCommitter( personIdent );
-                    }
-                    refUpdate.setNewObjectId( inserter.insert( cb ) );
-                    inserter.flush();
-                    switch ( refUpdate.update( rw ) ) {
-                        case NEW:
-                        case FAST_FORWARD:
-                            break;
-                        default:
-                            throw new RuntimeException( refUpdate.getName() );
+                    final Ref ref2 = bootstrap.exactRef( refdb.getTxnCommitted() );
+                    if ( ref2 == null || ref2.getObjectId().equals( ref != null ? ref.getObjectId() : null ) ) {
+                        cb.setTreeId( tree.writeTree( inserter ) );
+                        if ( original != null ) {
+                            cb.setAuthor( original.getAuthorIdent() );
+                            cb.setCommitter( original.getAuthorIdent() );
+                        } else {
+                            final PersonIdent personIdent = new PersonIdent( "user", "user@example.com" );
+                            cb.setAuthor( personIdent );
+                            cb.setCommitter( personIdent );
+                        }
+                        refUpdate.setNewObjectId( inserter.insert( cb ) );
+                        inserter.flush();
+                        final RefUpdate.Result result = refUpdate.update( rw );
+                        switch ( result ) {
+                            case NEW:
+                            case FAST_FORWARD:
+                                break;
+                            default:
+                                throw new RuntimeException( repo.getDirectory() + " -> " + result.toString() + " : " + refUpdate.getName() );
+                        }
+                        final File commited = new File( repo.getDirectory(), refdb.getTxnCommitted() );
+                        final File accepted = new File( repo.getDirectory(), refdb.getTxnNamespace() + "accepted" );
+                        Files.copy( commited.toPath(), accepted.toPath(), StandardCopyOption.REPLACE_EXISTING );
                     }
                 }
-
             }
         }
     }

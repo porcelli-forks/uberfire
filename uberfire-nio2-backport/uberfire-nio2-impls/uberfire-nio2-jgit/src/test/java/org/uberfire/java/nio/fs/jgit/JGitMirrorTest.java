@@ -44,7 +44,7 @@ public class JGitMirrorTest extends AbstractTestInfra {
     public void testToHTTPMirrorSuccess() throws IOException, GitAPIException {
         final File parentFolder = createTempDirectory();
         final File directory = new File( parentFolder, TARGET_GIT );
-        new Clone( directory, ORIGIN, false, CredentialsProvider.getDefault() ).execute();
+        new Clone( directory, ORIGIN, false, CredentialsProvider.getDefault(), null ).execute();
 
         final Git cloned = Git.open( directory );
 
@@ -69,7 +69,7 @@ public class JGitMirrorTest extends AbstractTestInfra {
     public void testEmptyCredentials() throws IOException, GitAPIException {
         final File parentFolder = createTempDirectory();
         final File directory = new File( parentFolder, TARGET_GIT );
-        new Clone( directory, ORIGIN, false, null ).execute();
+        new Clone( directory, ORIGIN, false, null, null ).execute();
 
         final Git cloned = Git.open( directory );
 
@@ -94,7 +94,7 @@ public class JGitMirrorTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
         final File directory = new File( parentFolder, TARGET_GIT );
         try {
-            new Clone( directory, ORIGIN + "sssss", false, CredentialsProvider.getDefault() ).execute();
+            new Clone( directory, ORIGIN + "sssss", false, CredentialsProvider.getDefault(), null ).execute();
             fail( "If got here the test is wrong because the ORIGIN does no exist" );
         } catch ( RuntimeException ex ) {
             assertThat( ex ).isNotNull();

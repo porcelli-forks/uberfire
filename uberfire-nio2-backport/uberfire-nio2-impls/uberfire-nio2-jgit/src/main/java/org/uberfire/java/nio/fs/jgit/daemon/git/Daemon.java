@@ -26,6 +26,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.URISyntaxException;
+import java.util.Date;
+import java.util.TimeZone;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Deflater;
@@ -35,7 +37,6 @@ import org.eclipse.jgit.internal.JGitText;
 import org.eclipse.jgit.internal.ketch.KetchLeader;
 import org.eclipse.jgit.internal.ketch.KetchLeaderCache;
 import org.eclipse.jgit.internal.ketch.KetchPreReceive;
-import org.eclipse.jgit.internal.ketch.KetchSystem;
 import org.eclipse.jgit.internal.ketch.KetchText;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
@@ -79,6 +80,11 @@ public class Daemon {
 
     private final Executor acceptThreadPool;
 
+    public Daemon( final InetSocketAddress addr,
+                   final Executor acceptThreadPool ) {
+        this( addr, acceptThreadPool, null );
+    }
+
     /**
      * Configures a new daemon for the specified network address. The daemon will not attempt to bind to an address or
      * accept connections until a call to {@link #start()}.
@@ -88,7 +94,8 @@ public class Daemon {
      * restarted, a new task will be submitted to this pool. When the daemon is stopped, the task completes.
      */
     public Daemon( final InetSocketAddress addr,
-                   final Executor acceptThreadPool ) {
+                   final Executor acceptThreadPool,
+                   final KetchLeaderCache leaders ) {
         myAddress = addr;
         this.acceptThreadPool = checkNotNull( "acceptThreadPool", acceptThreadPool );
 
@@ -105,11 +112,8 @@ public class Daemon {
             return up;
         };
 
-        final KetchSystem system = new KetchSystem();
-        final KetchLeaderCache leaders = new KetchLeaderCache( system );
-
         final ReceivePackFactory<DaemonClient> factory = ( req, db ) -> {
-            final ReceivePack rp = new ReceivePack( db );
+            final ReceivePack rp = new KetchCustomReceivePack( db );
 
             final InetAddress peer = req.getRemoteAddress();
             String host = peer.getCanonicalHostName();
@@ -118,24 +122,34 @@ public class Daemon {
             }
             final String name = "anonymous";
             final String email = name + "@" + host;
-            rp.setRefLogIdent( new PersonIdent( name, email ) );
+            rp.setRefLogIdent( new PersonIdent( "system", "system", new Date( 1L ), TimeZone.getDefault() ) );
             rp.setTimeout( getTimeout() );
 
+            rp.setPreReceiveHook( ( rp12, commands ) ->
+                                          System.out.println( "[" + addr.getHostString() + "]" + " onPreReceive!" ) );
+            rp.setPostReceiveHook( ( rp1, commands ) ->
+                                           System.out.println( "[" + addr.getHostString() + "]" + " onPostReceive!" ) );
+
             return rp;
         };
 
-        receivePackFactory = ( req, repo ) -> {
-            ReceivePack rp = factory.create( req, repo );
-            KetchLeader leader;
-            try {
-                leader = leaders.get( repo );
-            } catch ( URISyntaxException err ) {
-                throw new ServiceNotEnabledException(
-                        KetchText.get().invalidFollowerUri, err );
-            }
-            rp.setPreReceiveHook( new KetchPreReceive( leader ) );
-            return rp;
-        };
+//        if ( leaders == null ) {
+        if ( true ) {
+            receivePackFactory = factory;
+        } else {
+            receivePackFactory = ( req, repo ) -> {
+                final ReceivePack rp = factory.create( req, repo );
+                final KetchLeader leader;
+                try {
+                    leader = leaders.get( repo );
+                } catch ( URISyntaxException err ) {
+                    throw new ServiceNotEnabledException(
+                            KetchText.get().invalidFollowerUri, err );
+                }
+                rp.setPreReceiveHook( new KetchPreReceive( leader ) );
+                return rp;
+            };
+        }
 
         services = new DaemonService[]{ new DaemonService( "upload-pack", "uploadpack" ) {
             {

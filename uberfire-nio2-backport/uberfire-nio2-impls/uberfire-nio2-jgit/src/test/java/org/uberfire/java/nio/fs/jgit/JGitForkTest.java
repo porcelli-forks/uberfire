@@ -62,7 +62,7 @@ public class JGitForkTest extends AbstractTestInfra {
             put( "file3.txt", tempFile( "temp3" ) );
         }} ).execute();
 
-        new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
+        new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault(), null ).execute();
 
         final File gitCloned = new File( parentFolder, TARGET_GIT + ".git" );
         final Git cloned = Git.createRepository( gitCloned );
@@ -96,7 +96,7 @@ public class JGitForkTest extends AbstractTestInfra {
             put( "file.txt", tempFile( "temp" ) );
         }} ).execute();
 
-        new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
+        new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault(), null ).execute();
     }
 
     @Test
@@ -104,7 +104,7 @@ public class JGitForkTest extends AbstractTestInfra {
         final File parentFolder = createTempDirectory();
 
         try {
-            new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault() ).execute();
+            new Fork( parentFolder, SOURCE_GIT, TARGET_GIT, CredentialsProvider.getDefault(), null ).execute();
             fail( "If got here is because it could for the repository" );
         } catch ( InvalidRemoteException e ) {
             assertThat( e ).isNotNull();

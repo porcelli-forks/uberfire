@@ -55,6 +55,8 @@ import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.errors.UnsupportedCredentialItem;
+import org.eclipse.jgit.internal.ketch.KetchLeaderCache;
+import org.eclipse.jgit.internal.ketch.KetchSystem;
 import org.eclipse.jgit.internal.storage.file.WindowCache;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
@@ -138,7 +140,6 @@ import org.uberfire.java.nio.file.attribute.BasicFileAttributes;
 import org.uberfire.java.nio.file.attribute.FileAttribute;
 import org.uberfire.java.nio.file.attribute.FileAttributeView;
 import org.uberfire.java.nio.fs.jgit.daemon.git.Daemon;
-import org.uberfire.java.nio.fs.jgit.daemon.git.DaemonClient;
 import org.uberfire.java.nio.fs.jgit.daemon.ssh.BaseGitCommand;
 import org.uberfire.java.nio.fs.jgit.daemon.ssh.GitSSHService;
 import org.uberfire.java.nio.fs.jgit.util.Git;
@@ -239,10 +240,17 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     private GitSSHService gitSSHService = null;
     private FS detectedFS = FS.DETECTED;
 
+    final KetchSystem system = new KetchSystem();
+    final KetchLeaderCache leaders = new KetchLeaderCache( system );
+
+    boolean enableKetch = true;
+
     private void loadConfig( final ConfigProperties config ) {
         LOG.debug( "Configuring from properties:" );
 
         final String currentDirectory = System.getProperty( "user.dir" );
+
+        final ConfigProperty enableKetchProp = config.get( "org.uberfire.nio.git.ketch", "true" );
 
         final ConfigProperty hookDirProp = config.get( "org.uberfire.nio.git.hooks", null );
         final ConfigProperty bareReposDirProp = config.get( "org.uberfire.nio.git.dir", currentDirectory );
@@ -267,6 +275,10 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
 
         if ( LOG.isDebugEnabled() ) {
             LOG.debug( config.getConfigurationSummary( "Summary of JGit configuration:" ) );
+        }
+
+        if ( enableKetchProp != null && enableKetchProp.getValue() != null ) {
+            enableKetch = enableKetchProp.getBooleanValue();
         }
 
         if ( hookDirProp != null && hookDirProp.getValue() != null ) {
@@ -622,7 +634,8 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
     void buildAndStartDaemon() {
         if ( daemonService == null || !daemonService.isRunning() ) {
             daemonService = new Daemon( new InetSocketAddress( daemonHostAddr, daemonPort ),
-                                        new ExecutorWrapper( SimpleAsyncExecutorService.getUnmanagedInstance() ) );
+                                        new ExecutorWrapper( SimpleAsyncExecutorService.getUnmanagedInstance() ),
+                                        enableKetch ? leaders : null );
             daemonService.setRepositoryResolver( new RepositoryResolverImpl<>() );
             try {
                 daemonService.start();
@@ -719,15 +732,15 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
             final String origin = env.get( GIT_ENV_KEY_DEFAULT_REMOTE_NAME ).toString();
             try {
                 if ( this.isForkOrigin( origin ) ) {
-                    git = Git.fork( this.getGitRepoContainerDir(), origin, name, credential );
+                    git = Git.fork( this.getGitRepoContainerDir(), origin, name, credential, enableKetch ? leaders : null );
                 } else {
-                    git = Git.clone( repoDest, origin, true, credential );
+                    git = Git.clone( repoDest, origin, true, credential, enableKetch ? leaders : null );
                 }
             } catch ( InvalidRemoteException e ) {
                 throw new RuntimeException( e );
             }
         } else {
-            git = Git.createRepository( repoDest, hookDir );
+            git = Git.createRepository( repoDest, hookDir, enableKetch ? leaders : null );
         }
 
         final JGitFileSystem fs = new JGitFileSystem( this, fullHostNames, git, name, credential );
@@ -751,9 +764,12 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 stream.write( _init.getBytes() );
                 stream.close();
             } catch ( final Exception e ) {
+                e.printStackTrace();
                 LOG.info( "Repository initialization may have failed.", e );
             }
         }
+
+        git.enableKetch();
 
         final Object _clusterService = env.get( "clusterService" );
         if ( _clusterService != null && _clusterService instanceof ClusterService ) {

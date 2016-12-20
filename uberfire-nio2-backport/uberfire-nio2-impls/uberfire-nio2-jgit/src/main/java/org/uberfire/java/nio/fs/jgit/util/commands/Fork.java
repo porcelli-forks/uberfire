@@ -19,6 +19,7 @@ package org.uberfire.java.nio.fs.jgit.util.commands;
 import java.io.File;
 
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
+import org.eclipse.jgit.internal.ketch.KetchLeaderCache;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ import static org.uberfire.commons.validation.PortablePreconditions.*;
 public class Fork {
 
     private static final String DOT_GIT_EXT = ".git";
+    private final KetchLeaderCache leaders;
     private Logger logger = LoggerFactory.getLogger( Fork.class );
 
     private File parentFolder;
@@ -40,11 +42,13 @@ public class Fork {
     public Fork( final File parentFolder,
                  final String source,
                  final String target,
-                 final CredentialsProvider credentialsProvider ) {
+                 final CredentialsProvider credentialsProvider,
+                 final KetchLeaderCache leaders ) {
         this.parentFolder = checkNotNull( "parentFolder", parentFolder );
         this.source = checkNotEmpty( "source", source );
         this.target = checkNotEmpty( "target", target );
         this.credentialsProvider = checkNotNull( "credentialsProvider", credentialsProvider );
+        this.leaders = leaders;
     }
 
     public Git execute() throws InvalidRemoteException {
@@ -62,6 +66,6 @@ public class Fork {
             throw new GitException( message );
         }
 
-        return Git.clone( destination, origin.toPath().toUri().toString(), false, credentialsProvider );
+        return Git.clone( destination, origin.toPath().toUri().toString(), false, credentialsProvider, leaders );
     }
 }

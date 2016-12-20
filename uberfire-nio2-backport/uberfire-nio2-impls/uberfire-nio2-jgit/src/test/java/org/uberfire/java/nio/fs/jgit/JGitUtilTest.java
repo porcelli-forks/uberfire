@@ -82,7 +82,7 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault() ).execute().get();
+        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault(), null ).execute().get();
 
         assertThat( git ).isNotNull();
 
@@ -108,11 +108,11 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault() ).execute().get();
+        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault(), null ).execute().get();
 
-        assertThat( git.getPathInfo(  "user_branch", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
-        assertThat( git.getPathInfo(  "user_branch", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( git.getPathInfo(  "user_branch", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
+        assertThat( git.getPathInfo( "user_branch", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
+        assertThat( git.getPathInfo( "user_branch", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( git.getPathInfo( "user_branch", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
     }
 
     @Test
@@ -132,11 +132,11 @@ public class JGitUtilTest extends AbstractTestInfra {
 
         final File gitClonedFolder = new File( parentFolder, "myclone.git" );
 
-        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault() ).execute().get();
+        final Git git = new Clone( gitClonedFolder, origin.getRepository().getDirectory().toString(), false, CredentialsProvider.getDefault(), null ).execute().get();
 
-        assertThat( git.getPathInfo(  "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
-        assertThat( git.getPathInfo(  "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
-        assertThat( git.getPathInfo(  "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
+        assertThat( git.getPathInfo( "master", "pathx/" ).getPathType() ).isEqualTo( NOT_FOUND );
+        assertThat( git.getPathInfo( "master", "path/to/file2.txt" ).getPathType() ).isEqualTo( FILE );
+        assertThat( git.getPathInfo( "master", "path/to" ).getPathType() ).isEqualTo( DIRECTORY );
     }
 
     @Test

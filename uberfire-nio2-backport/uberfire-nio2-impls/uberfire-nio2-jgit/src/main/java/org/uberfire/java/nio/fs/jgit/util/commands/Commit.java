@@ -134,6 +134,7 @@ public class Commit {
                 hadEffecitiveCommit = false;
             }
         } catch ( final Throwable t ) {
+            t.printStackTrace();
             throw new RuntimeException( t );
         }
         return hadEffecitiveCommit;
@@ -147,14 +148,14 @@ public class Commit {
         final TimeZone tz = timeZone == null ? TimeZone.getDefault() : timeZone;
         final String email = _email == null ? "" : _email;
 
-        if ( name != null ) {
-            if ( when != null ) {
-                return new PersonIdent( name, email, when, tz );
-            } else {
-                return new PersonIdent( name, email );
-            }
-        }
-        return new PersonIdent( git.getRepository() );
+//        if ( name != null ) {
+//            if ( when != null ) {
+//                return new PersonIdent( name, email, when, tz );
+//            } else {
+//                return new PersonIdent( name, email );
+//            }
+//        }
+        return new PersonIdent( "system", "system", new Date( 1481754897254L ), TimeZone.getDefault() );
     }
 
 }

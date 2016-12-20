@@ -28,6 +28,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.internal.ketch.KetchLeader;
+import org.eclipse.jgit.internal.ketch.KetchLeaderCache;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -47,27 +48,37 @@ import org.uberfire.java.nio.fs.jgit.util.model.PathInfo;
 public interface Git {
 
     static Git createRepository( final File repoDir ) {
-        return new CreateRepository( repoDir ).execute().get();
+        return createRepository( repoDir, null );
     }
 
     static Git createRepository( final File repoDir,
                                  final File hookDir ) {
-        return new CreateRepository( repoDir, hookDir ).execute().get();
+        return createRepository( repoDir, hookDir, null );
+    }
+
+    static Git createRepository( final File repoDir,
+                                 final File hookDir,
+                                 final KetchLeaderCache leaders ) {
+        return new CreateRepository( repoDir, hookDir, leaders ).execute().get();
     }
 
     static Git fork( final File gitRepoContainerDir,
                      final String origin,
                      final String name,
-                     final CredentialsProvider credential ) throws InvalidRemoteException {
-        return new Fork( gitRepoContainerDir, origin, name, credential ).execute();
+                     final CredentialsProvider credential,
+                     final KetchLeaderCache leaders ) throws InvalidRemoteException {
+        return new Fork( gitRepoContainerDir, origin, name, credential, leaders ).execute();
     }
 
     static Git clone( final File repoDest,
                       final String origin,
                       final boolean b,
-                      final CredentialsProvider credential ) throws InvalidRemoteException {
-        return new Clone( repoDest, origin, true, credential ).execute().get();
+                      final CredentialsProvider credential,
+                      final KetchLeaderCache leaders ) throws InvalidRemoteException {
+        return new Clone( repoDest, origin, true, credential, leaders ).execute().get();
     }
+
+    void convertRefTree();
 
     void deleteRef( final Ref ref );
 
@@ -156,4 +167,12 @@ public interface Git {
                     final RevCommit commit ) throws IOException, ConcurrentRefUpdateException;
 
     KetchLeader getKetchLeader();
+
+    boolean isKetchEnabled();
+
+    void enableKetch();
+
+    void updateRepo( Repository repo );
+
+    void updateLeaders( final KetchLeaderCache leaders );
 }

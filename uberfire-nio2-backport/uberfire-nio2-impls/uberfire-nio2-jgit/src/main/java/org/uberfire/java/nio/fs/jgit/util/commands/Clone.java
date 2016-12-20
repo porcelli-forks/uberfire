@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Optional;
 
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
+import org.eclipse.jgit.internal.ketch.KetchLeaderCache;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
@@ -37,19 +38,22 @@ public class Clone {
     private final String origin;
     private final CredentialsProvider credentialsProvider;
     private final boolean isMirror;
+    private final KetchLeaderCache leaders;
 
     public Clone( final File directory,
                   final String origin,
                   final boolean isMirror,
-                  final CredentialsProvider credentialsProvider ) {
+                  final CredentialsProvider credentialsProvider,
+                  final KetchLeaderCache leaders ) {
         this.repoDir = checkNotNull( "directory", directory );
         this.origin = checkNotEmpty( "origin", origin );
         this.isMirror = isMirror;
         this.credentialsProvider = credentialsProvider;
+        this.leaders = leaders;
     }
 
     public Optional<Git> execute() throws InvalidRemoteException {
-        final Git git = Git.createRepository( repoDir );
+        final Git git = Git.createRepository( repoDir, null );
 
         if ( git != null ) {
             final Collection<RefSpec> refSpecList;
@@ -70,6 +74,12 @@ public class Clone {
             }
 
             git.syncRemote( remote );
+
+            git.convertRefTree();
+
+            git.updateLeaders( leaders );
+
+            git.setHeadAsInitialized();
 
             return Optional.of( git );
         }

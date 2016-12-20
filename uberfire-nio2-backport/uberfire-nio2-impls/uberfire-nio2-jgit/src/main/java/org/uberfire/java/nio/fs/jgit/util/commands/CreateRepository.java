@@ -20,8 +20,8 @@ import java.io.File;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
+import org.eclipse.jgit.internal.ketch.KetchLeaderCache;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.uberfire.java.nio.IOException;
 import org.uberfire.java.nio.fs.jgit.util.Git;
@@ -31,28 +31,35 @@ public class CreateRepository {
 
     private final File repoDir;
     private final File hookDir;
+    private final KetchLeaderCache leaders;
 
     public CreateRepository( final File repoDir ) {
-        this( repoDir, null );
+        this( repoDir, null, null );
     }
 
     public CreateRepository( final File repoDir,
                              final File hookDir ) {
+        this( repoDir, hookDir, null );
+    }
+
+    public CreateRepository( final File repoDir,
+                             final File hookDir,
+                             final KetchLeaderCache leaders ) {
         this.repoDir = repoDir;
         this.hookDir = hookDir;
+        this.leaders = leaders;
     }
 
     public Optional<Git> execute() {
         try {
             final org.eclipse.jgit.api.Git _git = org.eclipse.jgit.api.Git.init().setBare( true ).setDirectory( repoDir ).call();
 
-            final StoredConfig cfg = _git.getRepository().getConfig();
-            cfg.setInt( "core", null, "repositoryformatversion", 1 );
-            cfg.setString( "extensions", null, "refsStorage", "reftree" );
-
-            tempKetch( cfg );
-
-            cfg.save();
+            if ( leaders != null ) {
+                new WriteConfiguration( _git.getRepository(), cfg -> {
+                    cfg.setInt( "core", null, "repositoryformatversion", 1 );
+                    cfg.setString( "extensions", null, "refsStorage", "reftree" );
+                } ).execute();
+            }
 
             final Repository repo = new FileRepositoryBuilder()
                     .setGitDir( repoDir )
@@ -76,20 +83,9 @@ public class CreateRepository {
                 }
             }
 
-            return Optional.of( new GitImpl( git ) );
+            return Optional.of( new GitImpl( git, leaders ) );
         } catch ( final Exception ex ) {
             throw new IOException( ex );
         }
-    }
-
-    private void tempKetch( final StoredConfig cfg ) {
-        cfg.setString( "ketch", null, "name", "A" );
-        cfg.setString( "remote", "A", "ketch-type", "FULL" );
-
-        cfg.setString( "remote", "B", "url", "git://127.0.0.1:9423/" + repoDir.toPath().getFileName() );
-        cfg.setString( "remote", "B", "ketch-type", "FULL" );
-
-        cfg.setString( "remote", "C", "url", "git://127.0.0.1:9424/" + repoDir.toPath().getFileName() );
-        cfg.setString( "remote", "C", "ketch-type", "FULL" );
     }
 }
