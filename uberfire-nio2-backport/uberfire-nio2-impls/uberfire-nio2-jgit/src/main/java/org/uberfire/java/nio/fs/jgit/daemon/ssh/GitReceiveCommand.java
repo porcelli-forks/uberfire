@@ -54,8 +54,10 @@ public class GitReceiveCommand extends BaseGitCommand {
         try {
             final ReceivePack rp = receivePackFactory.create( this, repository );
             rp.receive( in, out, err );
-            fileSystem.getGit().gc();
-            fileSystem.resetCommitCount();
+            rp.setPostReceiveHook( ( rp1, commands ) -> {
+                fileSystem.getGit().gc();
+                fileSystem.resetCommitCount();
+            } );
         } catch ( final Exception ignored ) {
         }
     }
