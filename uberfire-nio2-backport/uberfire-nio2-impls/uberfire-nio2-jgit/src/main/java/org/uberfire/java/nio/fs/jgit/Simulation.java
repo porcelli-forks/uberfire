@@ -117,20 +117,30 @@ public class Simulation {
                 }} ).execute();
             }
 
-//            threadMap.get( "B" ).shutdown();
+            threadMap.get( "B" ).shutdown();
 
             Thread.sleep( 5000 );
             System.out.println( "COOOL1!" );
 
-//            {
-//                final JGitFileSystem origin = repos.get( "C" );
-//                new Commit( origin.getGit(), "master", "anonymous", "anonymous@127.0.0.1", "commitY", null, null, false, new HashMap<String, File>() {{
-//                    put( "fileXXXXX.txt", tempFile( "tempAAA" ) );
-//                }} ).execute();
-//            }
+            {
+                final JGitFileSystem origin = repos.get( "C" );
+                new Commit( origin.getGit(), "master", "anonymous", "anonymous@127.0.0.1", "commitY", null, null, false, new HashMap<String, File>() {{
+                    put( "fileXXXXX.txt", tempFile( "tempAAA" ) );
+                }} ).execute();
+            }
 
             Thread.sleep( 5000 );
             System.out.println( "COOOL2!" );
+
+            {
+                final JGitFileSystem origin = repos.get( "A" );
+                new Commit( origin.getGit(), "master", "anonymous", "anonymous@127.0.0.1", "commitLL", null, null, false, new HashMap<String, File>() {{
+                    put( "new-file.txt", tempFile( "new content now" ) );
+                }} ).execute();
+            }
+
+            System.out.println( "END?" );
+
         }
 
     }
@@ -216,8 +226,8 @@ public class Simulation {
                         cfg.setString( "remote", entry.getKey(), "ketch-type", "FULL" );
                     }
 
-                    cfg.setString( "remote", "Z", "url", "git://127.0.0.1:" + 9418 + "/" + origin.getName() );
-                    cfg.setString( "remote", "Z", "ketch-type", "FULL" );
+//                    cfg.setString( "remote", "Z", "url", "git://127.0.0.1:" + 9418 + "/" + origin.getName() );
+//                    cfg.setString( "remote", "Z", "ketch-type", "FULL" );
 
                 } catch ( Exception ex ) {
                     ex.printStackTrace();
