@@ -24,13 +24,10 @@ import java.util.Map;
 
 import org.apache.sshd.SshServer;
 import org.apache.sshd.common.util.SecurityUtils;
-import org.apache.sshd.server.Command;
-import org.apache.sshd.server.CommandFactory;
-import org.apache.sshd.server.PasswordAuthenticator;
+import org.apache.sshd.server.auth.CachingPublicKeyAuthenticator;
 import org.apache.sshd.server.command.UnknownCommand;
 import org.apache.sshd.server.keyprovider.AbstractGeneratorHostKeyProvider;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
-import org.apache.sshd.server.session.ServerSession;
 import org.eclipse.jgit.transport.resolver.ReceivePackFactory;
 import org.uberfire.java.nio.fs.jgit.JGitFileSystemProvider;
 import org.uberfire.java.nio.security.FileSystemAuthenticator;
@@ -87,8 +84,9 @@ public class GitSSHService {
                 return new UnknownCommand( command );
             }
         } );
+        sshd.setPublickeyAuthenticator( new CachingPublicKeyAuthenticator( ( username, key, session ) -> false ) );
         sshd.setPasswordAuthenticator( ( username, password, session ) -> {
-            FileSystemUser user = getUserPassAuthenticator().authenticate( username, password );
+            final FileSystemUser user = getUserPassAuthenticator().authenticate( username, password );
             if ( user == null ) {
                 return false;
             }
