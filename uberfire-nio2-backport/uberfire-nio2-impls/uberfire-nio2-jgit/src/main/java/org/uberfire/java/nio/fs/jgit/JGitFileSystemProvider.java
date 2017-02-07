@@ -1268,7 +1268,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 deleteResource( path, options );
                 return;
             }
-            final List<JGitPathInfo> content = listPathContent( path.getFileSystem().gitRepo(), path.getRefTree(), path.getPath() );
+            final List<PathInfo> content = path.getFileSystem().getGit().listPathContent( path.getRefTree(), path.getPath() );
             if ( content.size() == 1 && content.get( 0 ).getPath().equals( path.getPath().substring( 1 ) + "/.gitkeep" ) ) {
                 delete( path.resolve( ".gitkeep" ) );
                 deleteResource( path, options );
@@ -1352,7 +1352,7 @@ public class JGitFileSystemProvider implements SecuredFileSystemProvider,
                 deleteResource( path, options );
                 return true;
             }
-            final List<JGitPathInfo> content = listPathContent( path.getFileSystem().gitRepo(), path.getRefTree(), path.getPath() );
+            final List<PathInfo> content = path.getFileSystem().getGit().listPathContent( path.getRefTree(), path.getPath() );
             if ( content.size() == 1 && content.get( 0 ).getPath().equals( path.getPath().substring( 1 ) + "/.gitkeep" ) ) {
                 delete( path.resolve( ".gitkeep" ) );
                 return true;
